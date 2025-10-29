@@ -1,5 +1,5 @@
 import Foundation
-import Combine
+internal import Combine
 import QuartzCore
 
 @MainActor
@@ -72,8 +72,11 @@ final class HandCaptureManager: ObservableObject {
         isPlayingBack = true
         let samples = sequence.samples
 
-        playbackTask = Task { [samples] in
-            let baseTime = samples.first?.timestamp ?? 0
+        playbackTask = Task {
+            guard let baseTime = samples.first?.timestamp else {
+                await MainActor.run { self.stopPlayback() }
+                return
+            }
             let startWallClock = CACurrentMediaTime()
 
             for sample in samples {
@@ -84,7 +87,12 @@ final class HandCaptureManager: ObservableObject {
 
                 if target > elapsed {
                     let delay = target - elapsed
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    } catch {
+                        // Task was cancelled, so break the loop.
+                        break
+                    }
                 }
 
                 guard !Task.isCancelled else { break }
