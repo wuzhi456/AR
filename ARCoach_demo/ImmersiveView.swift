@@ -12,51 +12,52 @@ struct ImmersiveView: View {
     @State private var isShowingFileImporter = false
 
     var body: some View {
-        RealityView { content in
-            let leftHandAnchor = AnchorEntity()
-            leftHandAnchor.name = EntityName.leftHandRoot
-            content.add(leftHandAnchor)
+        ZStack(alignment: .bottom) {
+            RealityView { content in
+                let leftHandAnchor = AnchorEntity()
+                leftHandAnchor.name = EntityName.leftHandRoot
+                content.add(leftHandAnchor)
 
-            let rightHandAnchor = AnchorEntity()
-            rightHandAnchor.name = EntityName.rightHandRoot
-            content.add(rightHandAnchor)
-        } update: { content in
-            if captureManager.isPlayingBack, let frame = captureManager.currentPlaybackFrame {
-                updateHandVisualization(content: content,
-                                        joints: frame.left,
-                                        rootName: EntityName.leftHandRoot,
-                                        jointColor: .cyan)
-                updateHandVisualization(content: content,
-                                        joints: frame.right,
-                                        rootName: EntityName.rightHandRoot,
-                                        jointColor: .magenta)
-            } else {
-                let leftJoints = jointPoses(for: handTrackingModel.latestHands.left)
-                let rightJoints = jointPoses(for: handTrackingModel.latestHands.right)
+                let rightHandAnchor = AnchorEntity()
+                rightHandAnchor.name = EntityName.rightHandRoot
+                content.add(rightHandAnchor)
+            } update: { content in
+                if captureManager.isPlayingBack, let frame = captureManager.currentPlaybackFrame {
+                    updateHandVisualization(content: content,
+                                            joints: frame.left,
+                                            rootName: EntityName.leftHandRoot,
+                                            jointColor: .cyan)
+                    updateHandVisualization(content: content,
+                                            joints: frame.right,
+                                            rootName: EntityName.rightHandRoot,
+                                            jointColor: .magenta)
+                } else {
+                    let leftJoints = jointPoses(for: handTrackingModel.latestHands.left)
+                    let rightJoints = jointPoses(for: handTrackingModel.latestHands.right)
 
-                updateHandVisualization(content: content,
-                                        joints: leftJoints,
-                                        rootName: EntityName.leftHandRoot,
-                                        jointColor: .cyan)
-                updateHandVisualization(content: content,
-                                        joints: rightJoints,
-                                        rootName: EntityName.rightHandRoot,
-                                        jointColor: .magenta)
+                    updateHandVisualization(content: content,
+                                            joints: leftJoints,
+                                            rootName: EntityName.leftHandRoot,
+                                            jointColor: .cyan)
+                    updateHandVisualization(content: content,
+                                            joints: rightJoints,
+                                            rootName: EntityName.rightHandRoot,
+                                            jointColor: .magenta)
 
-                captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+                    captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+                }
             }
-        }
-        .task { await handTrackingModel.start() }
-        .task { await handTrackingModel.publishHandTrackingUpdates() }
-        .task { await handTrackingModel.monitorSessionEvents() }
-        .overlay(alignment: .bottom) {
+            .task { await handTrackingModel.start() }
+            .task { await handTrackingModel.publishHandTrackingUpdates() }
+            .task { await handTrackingModel.monitorSessionEvents() }
+
             HandCaptureControlPanel(
                 captureManager: captureManager,
                 onToggleRecording: toggleRecording,
                 onTogglePlayback: togglePlayback
             )
-            .padding()
-            .glassBackgroundEffect()
+            .padding(20)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
             .padding(.bottom, 40)
         }
         .fileImporter(isPresented: $isShowingFileImporter,
@@ -64,8 +65,8 @@ struct ImmersiveView: View {
                       allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
-                guard let url = urls.first else { 
-                    print("No file selected")    
+                guard let url = urls.first else {
+                    print("No file selected")
                     return
                 }
                 Task.detached(priority: .userInitiated) {
