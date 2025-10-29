@@ -1,10 +1,3 @@
-//
-//  ImmersiveView.swift
-//  ARCoach_demo
-//
-//  Created by Dvalab on 2025/10/28.
-//
-
 import SwiftUI
 import RealityKit
 import RealityKitContent
@@ -17,11 +10,11 @@ struct ImmersiveView: View {
 
     var body: some View {
         RealityView { content in
-            if let immersiveContentEntity = try? await Entity(named: "Immersive", in: realityKitContentBundle) {
-                content.add(immersiveContentEntity)
-            }
+            // 移除示例场景加载，保持空间“空”，仅渲染手关节
+            // let immersiveContentEntity = try? await Entity(named: "Immersive", in: realityKitContentBundle)
+            // if let immersiveContentEntity { content.add(immersiveContentEntity) }
 
-            // Prepare anchors that host joint visualizations for both hands.
+            // 左右手的可视化锚点
             let leftHandAnchor = AnchorEntity()
             leftHandAnchor.name = EntityName.leftHandRoot
             content.add(leftHandAnchor)
