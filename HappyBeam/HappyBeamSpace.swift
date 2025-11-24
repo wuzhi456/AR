@@ -17,6 +17,7 @@ import HappyBeamAssets
 struct HappyBeamSpace: View {
     @ObservedObject var gestureModel: HeartGestureModel
     @Environment(GameModel.self) var gameModel
+    @StateObject private var recordingManager = HandRecordingManager()
     
     @State private var emittingBeam = false
     @State private var blasterPosition = Float(0)
@@ -26,6 +27,7 @@ struct HappyBeamSpace: View {
     @State private var orientations: [simd_quatf] = []
     @State private var collisionSubscription: EventSubscription?
     @State private var activationSubscription: EventSubscription?
+    @State private var guideHandEntities: [String: ModelEntity] = [:]
     
     var collisionEntity = Entity()
     
@@ -35,6 +37,15 @@ struct HappyBeamSpace: View {
             content.add(spaceOrigin)
             content.add(cameraRelativeAnchor)
             spaceOrigin.addChild(beamIntermediate)
+            
+            // Add guide hand anchor entities for playback visualization
+            let leftGuideAnchor = AnchorEntity()
+            leftGuideAnchor.name = "LeftGuideHandRoot"
+            content.add(leftGuideAnchor)
+            
+            let rightGuideAnchor = AnchorEntity()
+            rightGuideAnchor.name = "RightGuideHandRoot"
+            content.add(rightGuideAnchor)
             
             // MARK: Events
             activationSubscription = content.subscribe(to: AccessibilityEvents.Activate.self, on: nil, componentType: nil) { activation in
@@ -130,6 +141,28 @@ struct HappyBeamSpace: View {
                         endBlasterBeam()
                     }
                 }
+                
+                // Handle recording
+                if gameModel.recordingMode == .record && recordingManager.isRecording {
+                    let leftJoints = jointPoses(for: gestureModel.latestHandTracking.left)
+                    let rightJoints = jointPoses(for: gestureModel.latestHandTracking.right)
+                    recordingManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+                }
+                
+                // Handle playback visualization
+                if gameModel.recordingMode == .playback, let frame = recordingManager.currentPlaybackFrame {
+                    updateGuideHandVisualization(content: updateContent,
+                                                 joints: frame.left,
+                                                 rootName: "LeftGuideHandRoot",
+                                                 jointColor: .systemYellow)
+                    updateGuideHandVisualization(content: updateContent,
+                                                 joints: frame.right,
+                                                 rootName: "RightGuideHandRoot",
+                                                 jointColor: .systemOrange)
+                } else {
+                    // Hide guide hands when not in playback mode
+                    hideGuideHands(content: updateContent)
+                }
             }
         }
         .gesture(DragGesture(minimumDistance: 0.0)
@@ -190,6 +223,33 @@ struct HappyBeamSpace: View {
         }
         .task {
             await gestureModel.monitorSessionEvents()
+        }
+        .task {
+            // Handle recording start/stop
+            if gameModel.recordingMode == .record && !recordingManager.isRecording && gameModel.isSoloReady {
+                recordingManager.startRecording()
+            }
+        }
+        .task {
+            // Load and start playback if selected
+            if gameModel.recordingMode == .playback,
+               let url = gameModel.selectedRecordingURL,
+               !recordingManager.isPlayingBack {
+                do {
+                    let sequence = try await recordingManager.loadRecording(from: url)
+                    recordingManager.beginPlayback(with: sequence)
+                } catch {
+                    print("Failed to load recording: \(error)")
+                }
+            }
+        }
+        .onChange(of: gameModel.isFinished) { _, newValue in
+            // Stop recording when game finishes
+            if newValue && recordingManager.isRecording {
+                Task {
+                    await recordingManager.stopRecordingAndSave()
+                }
+            }
         }
         .onChange(of: gameModel.controllerLastInput) {
             gameControllerLoop()
@@ -306,6 +366,73 @@ struct HappyBeamSpace: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Hand Recording/Playback Helper Functions
+    
+    /// Extract joint poses from a hand anchor for recording
+    private func jointPoses(for anchor: HandAnchor?) -> [HandPoseSample.JointPose] {
+        guard let anchor, anchor.isTracked, let skeleton = anchor.handSkeleton else { return [] }
+        
+        return HandSkeleton.JointName.allCases.compactMap { jointName in
+            let joint = skeleton.joint(jointName)
+            guard joint.isTracked else { return nil }
+            let worldTransform = matrix_multiply(anchor.originFromAnchorTransform, joint.anchorFromJointTransform)
+            return HandPoseSample.JointPose(name: String(describing: jointName), transform: worldTransform)
+        }
+    }
+    
+    /// Update visualization for guide hands during playback
+    private func updateGuideHandVisualization(content: RealityViewContent,
+                                              joints: [HandPoseSample.JointPose],
+                                              rootName: String,
+                                              jointColor: UIColor) {
+        guard let root = content.entities.first(where: { $0.name == rootName }) else { return }
+        
+        guard !joints.isEmpty else {
+            root.isEnabled = false
+            return
+        }
+        
+        root.isEnabled = true
+        var activeJointNames = Set<String>()
+        
+        for joint in joints {
+            let jointEntity = getOrCreateJointEntity(named: joint.name, under: root, color: jointColor)
+            jointEntity.isEnabled = true
+            jointEntity.setTransformMatrix(joint.transformMatrix, relativeTo: nil)
+            activeJointNames.insert(joint.name)
+        }
+        
+        // Disable joints that are not in current frame
+        for child in root.children where !activeJointNames.contains(child.name) {
+            child.isEnabled = false
+        }
+    }
+    
+    /// Hide guide hands when not in playback mode
+    private func hideGuideHands(content: RealityViewContent) {
+        if let leftRoot = content.entities.first(where: { $0.name == "LeftGuideHandRoot" }) {
+            leftRoot.isEnabled = false
+        }
+        if let rightRoot = content.entities.first(where: { $0.name == "RightGuideHandRoot" }) {
+            rightRoot.isEnabled = false
+        }
+    }
+    
+    /// Get or create a joint entity for visualization
+    private func getOrCreateJointEntity(named name: String, under root: Entity, color: UIColor) -> ModelEntity {
+        if let existing = root.findEntity(named: name) as? ModelEntity {
+            return existing
+        }
+        
+        let mesh = MeshResource.generateSphere(radius: 0.007)
+        let materialColor = SimpleMaterial.Color(Color(uiColor: color))
+        let material = SimpleMaterial(color: materialColor, roughness: 0.3, isMetallic: false)
+        let entity = ModelEntity(mesh: mesh, materials: [material])
+        entity.name = name
+        root.addChild(entity)
+        return entity
     }
 }
 

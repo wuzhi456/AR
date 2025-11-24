@@ -117,6 +117,10 @@ class GameModel {
     var isInputSelected = false
     var inputKind: InputKind = .hands
     
+    // Hand recording mode
+    var recordingMode: RecordingMode = .none
+    var selectedRecordingURL: URL?
+    
     var players = initialPlayers
     var clouds: [Cloud] = (0..<30).map { Cloud(id: $0, isHappy: false) }
     var cloudSounds = [AudioFileResource]()
@@ -147,6 +151,8 @@ class GameModel {
         score = 0
         isInputSelected = false
         inputKind = .hands
+        recordingMode = .none
+        selectedRecordingURL = nil
         players = initialPlayers
         
         #if targetEnvironment(simulator)
@@ -273,4 +279,16 @@ enum InputKind {
     
     /// An input method that spawns a stationary heart projector.
     case alternative
+}
+
+/// Recording mode options for hand motion
+enum RecordingMode {
+    /// No recording mode
+    case none
+    
+    /// Record hand motions during gameplay
+    case record
+    
+    /// Display previously recorded hand motions as guidance
+    case playback
 }
