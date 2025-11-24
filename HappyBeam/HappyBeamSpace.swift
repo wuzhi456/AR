@@ -28,6 +28,7 @@ struct HappyBeamSpace: View {
     @State private var collisionSubscription: EventSubscription?
     @State private var activationSubscription: EventSubscription?
     @State private var guideHandEntities: [String: ModelEntity] = [:]
+    @State private var saveRecordingTask: Task<Void, Never>?
     
     var collisionEntity = Entity()
     
@@ -246,7 +247,9 @@ struct HappyBeamSpace: View {
         .onChange(of: gameModel.isFinished) { _, newValue in
             // Stop recording when game finishes
             if newValue && recordingManager.isRecording {
-                Task {
+                // Cancel any previous save task
+                saveRecordingTask?.cancel()
+                saveRecordingTask = Task {
                     await recordingManager.stopRecordingAndSave()
                 }
             }
@@ -405,6 +408,7 @@ struct HappyBeamSpace: View {
         }
         
         // Disable joints that are not in current frame
+        // Note: This is efficient for hand skeleton (max ~27 joints per hand)
         for child in root.children where !activeJointNames.contains(child.name) {
             child.isEnabled = false
         }
