@@ -33,6 +33,7 @@ final class HandRecordingManager: ObservableObject {
         samples.removeAll()
         recordingStart = CACurrentMediaTime()
         isRecording = true
+        print("HandRecordingManager: Recording started")
     }
     
     func captureFrame(leftJoints: [HandPoseSample.JointPose],
@@ -44,13 +45,23 @@ final class HandRecordingManager: ObservableObject {
         let relativeTime = timestamp - recordingStart
         let sample = HandPoseSample(timestamp: relativeTime, left: leftJoints, right: rightJoints)
         samples.append(sample)
+        
+        // Log every 60 frames (roughly once per second at 60fps)
+        if samples.count % 60 == 0 {
+            print("HandRecordingManager: Captured \(samples.count) frames")
+        }
     }
     
     func stopRecordingAndSave() async {
-        guard isRecording else { return }
+        guard isRecording else { 
+            print("stopRecordingAndSave: Not recording, skipping save")
+            return 
+        }
         isRecording = false
         
+        print("stopRecordingAndSave: Collected \(samples.count) samples")
         guard !samples.isEmpty else {
+            print("stopRecordingAndSave: No samples to save")
             samples.removeAll()
             return
         }
@@ -64,11 +75,12 @@ final class HandRecordingManager: ObservableObject {
             let data = try encoder.encode(sequence)
             
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            print("Documents directory: \(directory.path)")
             let filename = "HandPose_\(Self.filenameFormatter.string(from: Date())).json"
             let url = directory.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
             lastSavedURL = url
-            print("Recording saved: \(url.path)")
+            print("Recording saved successfully: \(url.path) (\(data.count) bytes)")
         } catch {
             print("Failed to save recording: \(error)")
         }
@@ -133,8 +145,11 @@ final class HandRecordingManager: ObservableObject {
     /// Get list of available recordings
     func getAvailableRecordings() -> [URL] {
         guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("getAvailableRecordings: Could not get documents directory")
             return []
         }
+        
+        print("getAvailableRecordings: Searching in \(directory.path)")
         
         do {
             let files = try FileManager.default.contentsOfDirectory(
@@ -143,12 +158,21 @@ final class HandRecordingManager: ObservableObject {
                 options: [.skipsHiddenFiles]
             )
             
-            return files.filter { $0.pathExtension == "json" && $0.lastPathComponent.hasPrefix("HandPose_") }
+            print("getAvailableRecordings: Found \(files.count) total files")
+            
+            let recordings = files.filter { $0.pathExtension == "json" && $0.lastPathComponent.hasPrefix("HandPose_") }
                 .sorted { url1, url2 in
                     let date1 = (try? url1.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date.distantPast
                     let date2 = (try? url2.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date.distantPast
                     return date1 > date2
                 }
+            
+            print("getAvailableRecordings: Found \(recordings.count) hand pose recordings")
+            for recording in recordings {
+                print("  - \(recording.lastPathComponent)")
+            }
+            
+            return recordings
         } catch {
             print("Error getting recordings: \(error)")
             return []

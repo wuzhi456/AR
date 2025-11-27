@@ -225,22 +225,25 @@ struct HappyBeamSpace: View {
         .task {
             await gestureModel.monitorSessionEvents()
         }
-        .task {
-            // Handle recording start/stop
-            if gameModel.recordingMode == .record && !recordingManager.isRecording && gameModel.isSoloReady {
+        .onChange(of: gameModel.isSoloReady) { _, newValue in
+            // Start recording when the game countdown finishes and solo play begins
+            if newValue && gameModel.recordingMode == .record && !recordingManager.isRecording {
+                print("Starting hand motion recording...")
                 recordingManager.startRecording()
             }
-        }
-        .task {
-            // Load and start playback if selected
-            if gameModel.recordingMode == .playback,
+            // Start playback when solo play begins
+            if newValue && gameModel.recordingMode == .playback,
                let url = gameModel.selectedRecordingURL,
                !recordingManager.isPlayingBack {
-                do {
-                    let sequence = try await recordingManager.loadRecording(from: url)
-                    recordingManager.beginPlayback(with: sequence)
-                } catch {
-                    print("Failed to load recording: \(error)")
+                Task {
+                    do {
+                        print("Loading recording from: \(url.path)")
+                        let sequence = try await recordingManager.loadRecording(from: url)
+                        print("Starting playback with \(sequence.samples.count) samples")
+                        recordingManager.beginPlayback(with: sequence)
+                    } catch {
+                        print("Failed to load recording: \(error)")
+                    }
                 }
             }
         }
