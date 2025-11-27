@@ -18,6 +18,7 @@
 		32372A652991951F00F10755 /* Players.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32372A642991951F00F10755 /* Players.swift */; };
 		324EA74B297B2286005A6B3B /* Multiplayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324EA74A297B2286005A6B3B /* Multiplayer.swift */; };
 		324F3045298ACB0B00200F22 /* Start.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324F3044298ACB0B00200F22 /* Start.swift */; };
+		66C6AF40BDFC469E856FF7C8 /* HandRecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8FCD0C607BD474EBD40CA70 /* HandRecordingManager.swift */; };
 		324F3047298AE68600200F22 /* SoloPlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324F3046298AE68600200F22 /* SoloPlay.swift */; };
 		324F3049298AEAF800200F22 /* SoloScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324F3048298AEAF800200F22 /* SoloScore.swift */; };
 		324F304B298AED7300200F22 /* MultiPlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324F304A298AED7300200F22 /* MultiPlay.swift */; };
@@ -57,6 +58,7 @@
 		32372A642991951F00F10755 /* Players.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Players.swift; sourceTree = "<group>"; };
 		323FE0072B02EA5F0097340F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		324EA74A297B2286005A6B3B /* Multiplayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Multiplayer.swift; sourceTree = "<group>"; };
+		E8FCD0C607BD474EBD40CA70 /* HandRecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandRecordingManager.swift; sourceTree = "<group>"; };
 		324F3044298ACB0B00200F22 /* Start.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Start.swift; sourceTree = "<group>"; };
 		324F3046298AE68600200F22 /* SoloPlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloPlay.swift; sourceTree = "<group>"; };
 		324F3048298AEAF800200F22 /* SoloScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloScore.swift; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 			children = (
 				32791FB02A30CF24000290A2 /* BeamCollisions.swift */,
 				32665A94299AAFE200EBA549 /* Clouds.swift */,
+				E8FCD0C607BD474EBD40CA70 /* HandRecordingManager.swift */,
 				322C5442291D892800C32983 /* HeartGestureModel.swift */,
 				324EA74A297B2286005A6B3B /* Multiplayer.swift */,
 				32372A642991951F00F10755 /* Players.swift */,
@@ -316,6 +319,7 @@
 			files = (
 				32665A97299AB02200EBA549 /* Lobby.swift in Sources */,
 				321A0C13291C02B80042A987 /* HappyBeamApp.swift in Sources */,
+				66C6AF40BDFC469E856FF7C8 /* HandRecordingManager.swift in Sources */,
 				322C5443291D892800C32983 /* HeartGestureModel.swift in Sources */,
 				32372A652991951F00F10755 /* Players.swift in Sources */,
 				32665A95299AAFE200EBA549 /* Clouds.swift in Sources */,

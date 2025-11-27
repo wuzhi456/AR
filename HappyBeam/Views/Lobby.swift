@@ -9,6 +9,10 @@ import SwiftUI
 
 struct Lobby: View {
     @Environment(GameModel.self) var gameModel
+    @State private var showRecordingModeSelection = false
+    @State private var selectedInputKind: InputKind = .hands
+    @State private var showRecordingFileSelector = false
+    @State private var availableRecordings: [URL] = []
     
     var progressValue: Float {
         min(1, max(0, Float(gameModel.countDown) / 3.0 + 0.01))
@@ -16,8 +20,13 @@ struct Lobby: View {
     
     var body: some View {
         if !gameModel.isInputSelected {
-            inputSelection
-                .frame(width: 634, height: 499)
+            if showRecordingModeSelection {
+                recordingModeSelection
+                    .frame(width: 634, height: 499)
+            } else {
+                inputSelection
+                    .frame(width: 634, height: 499)
+            }
         } else {
             if gameModel.isSharePlaying {
                 multiWaiting
@@ -53,7 +62,8 @@ struct Lobby: View {
             HStack(alignment: .top, spacing: 30) {
                 VStack {
                     Button {
-                        chooseInputAndReady(.hands)
+                        selectedInputKind = .hands
+                        showRecordingModeSelection = true
                     } label: {
                         Label {
                             Text("Make a heart with two hands.", comment: "A way to control the game.")
@@ -78,7 +88,8 @@ struct Lobby: View {
 
                 VStack {
                     Button {
-                        chooseInputAndReady(.alternative)
+                        selectedInputKind = .alternative
+                        showRecordingModeSelection = true
                     } label: {
                         Label {
                             Text("Use a pinch gesture or a compatible device.", comment: "A way to control the game.")
@@ -101,6 +112,162 @@ struct Lobby: View {
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal, 20)
+        }
+    }
+    
+    var recordingModeSelection: some View {
+        VStack(spacing: 20) {
+            Text("Choose recording mode", comment: "Asks the user about recording mode.")
+                .font(.title)
+                .padding(.top, 40)
+                .padding(.bottom, 20)
+            
+            HStack(alignment: .top, spacing: 20) {
+                VStack {
+                    Button {
+                        gameModel.recordingMode = .none
+                        chooseInputAndReady(selectedInputKind)
+                    } label: {
+                        VStack(spacing: 12) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.blue)
+                            Text("Normal Play", comment: "Play without recording")
+                                .font(.headline)
+                        }
+                        .frame(width: 160, height: 160)
+                    }
+                    .buttonBorderShape(.roundedRectangle(radius: 20))
+                    
+                    Text("Play normally", comment: "Description for normal play")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 160)
+                }
+                
+                VStack {
+                    Button {
+                        gameModel.recordingMode = .record
+                        chooseInputAndReady(selectedInputKind)
+                    } label: {
+                        VStack(spacing: 12) {
+                            Image(systemName: "record.circle")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.red)
+                            Text("Record", comment: "Record hand motions")
+                                .font(.headline)
+                        }
+                        .frame(width: 160, height: 160)
+                    }
+                    .buttonBorderShape(.roundedRectangle(radius: 20))
+                    
+                    Text("Record your hand motions", comment: "Description for recording")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 160)
+                }
+                
+                VStack {
+                    Button {
+                        showRecordingFileSelector = true
+                    } label: {
+                        VStack(spacing: 12) {
+                            Image(systemName: "eye.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.green)
+                            Text("Playback", comment: "Show recorded motions")
+                                .font(.headline)
+                        }
+                        .frame(width: 160, height: 160)
+                    }
+                    .buttonBorderShape(.roundedRectangle(radius: 20))
+                    
+                    Text("Follow recorded guidance", comment: "Description for playback")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 160)
+                }
+            }
+            
+            Button {
+                showRecordingModeSelection = false
+            } label: {
+                Label("Back", systemImage: "chevron.backward")
+            }
+            .padding(.top, 20)
+            
+            Spacer()
+        }
+        .sheet(isPresented: $showRecordingFileSelector) {
+            recordingFileSelector
+        }
+        .onAppear {
+            let manager = HandRecordingManager()
+            availableRecordings = manager.getAvailableRecordings()
+        }
+    }
+    
+    var recordingFileSelector: some View {
+        VStack(spacing: 20) {
+            Text("Select a recording", comment: "Title for file selector")
+                .font(.title)
+                .padding(.top, 30)
+            
+            if availableRecordings.isEmpty {
+                VStack(spacing: 15) {
+                    Image(systemName: "doc.questionmark")
+                        .font(.system(size: 50))
+                        .foregroundStyle(.secondary)
+                    Text("No recordings found", comment: "Message when no recordings exist")
+                        .font(.headline)
+                    Text("Record a gameplay session first", comment: "Instruction to record first")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(40)
+            } else {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(availableRecordings, id: \.self) { url in
+                            Button {
+                                gameModel.selectedRecordingURL = url
+                                gameModel.recordingMode = .playback
+                                showRecordingFileSelector = false
+                                chooseInputAndReady(selectedInputKind)
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.fill")
+                                    Text(url.lastPathComponent)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                }
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(10)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+            
+            Button {
+                showRecordingFileSelector = false
+            } label: {
+                Text("Cancel", comment: "Cancel button")
+            }
+            .padding(.bottom, 30)
+        }
+        .frame(width: 500, height: 400)
+        .onAppear {
+            // Refresh recordings list when sheet appears
+            let manager = HandRecordingManager()
+            availableRecordings = manager.getAvailableRecordings()
+            print("recordingFileSelector: Refreshed recordings, found \(availableRecordings.count)")
         }
     }
     
