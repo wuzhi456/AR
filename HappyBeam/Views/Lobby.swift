@@ -263,6 +263,12 @@ struct Lobby: View {
             .padding(.bottom, 30)
         }
         .frame(width: 500, height: 400)
+        .onAppear {
+            // Refresh recordings list when sheet appears
+            let manager = HandRecordingManager()
+            availableRecordings = manager.getAvailableRecordings()
+            print("recordingFileSelector: Refreshed recordings, found \(availableRecordings.count)")
+        }
     }
     
     func chooseInputAndReady(_ kind: InputKind) {
