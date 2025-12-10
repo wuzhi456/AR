@@ -64,7 +64,10 @@ final class HandCaptureManager: ObservableObject {
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(recording)
             
-            let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Failed to get documents directory")
+                return
+            }
             let filename = "HandPose_\(Self.filenameFormatter.string(from: Date())).json"
             let url = directory.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)

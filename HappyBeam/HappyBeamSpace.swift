@@ -299,9 +299,12 @@ struct HappyBeamSpace: View {
     
     // MARK: - Game Mode Handling
     
+    /// Handles the start of the game based on the selected game mode.
+    /// Normal mode requires no additional setup; recording and playback modes initialize their respective handlers.
     private func handleGameModeStart() async {
         switch gameModel.soloGameMode {
         case .normal:
+            // Normal mode: no special initialization needed
             break
             
         case .recording:
@@ -317,6 +320,7 @@ struct HappyBeamSpace: View {
     private func handleGameEnd() {
         switch gameModel.soloGameMode {
         case .normal:
+            // Normal mode: no cleanup needed
             break
             
         case .recording:
