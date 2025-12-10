@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 The start screen for the game.
@@ -7,12 +7,15 @@ The start screen for the game.
 
 import SwiftUI
 import GroupActivities
+import UniformTypeIdentifiers
 
 struct Start: View {
     @Environment(GameModel.self) var gameModel
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     
     @StateObject private var groupStateObserver = GroupStateObserver()
+    @State private var isShowingFileImporter = false
+    @State private var showingSoloOptions = false
     
     var body: some View {
         VStack(spacing: 10) {
@@ -29,34 +32,11 @@ struct Start: View {
                 .frame(width: 340)
                 .padding(.bottom, 10)
             if gameModel.readyToStart {
-                Group {
-                    Button {
-                        gameModel.isPlaying = true
-                        gameModel.timeLeft = GameModel.gameTime
-                    } label: {
-                        Text("Play Solo", comment: "A game mode where the player plays in single-player mode.")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .disabled(!gameModel.readyToStart)
-                    
-                    Button {
-                        print("Starting as SharePlay", groupStateObserver.isEligibleForGroupSession)
-                        
-                        Task {
-                            do {
-                                try await startSession()
-                            } catch {
-                                print("SharePlay session failure", error)
-                            }
-                        }
-                    } label: {
-                        Text("Play with Friends", comment: "A game mode where the player plays in multi-player mode.")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .disabled(!groupStateObserver.isEligibleForGroupSession)
+                if showingSoloOptions {
+                    soloModeSelection
+                } else {
+                    mainMenu
                 }
-                .font(.system(size: 16, weight: .bold))
-                .frame(width: 200)
             } else {
                 ProgressView("Loading assets…")
             }
@@ -70,6 +50,111 @@ struct Start: View {
             gameModel.menuPlayer.numberOfLoops = -1
             gameModel.menuPlayer.currentTime = 0
             gameModel.menuPlayer.play()
+        }
+        .fileImporter(isPresented: $isShowingFileImporter,
+                      allowedContentTypes: [.json],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                loadAndStartPlayback(from: url)
+            case .failure(let error):
+                print("File selection failed: \(error)")
+            }
+        }
+    }
+    
+    var mainMenu: some View {
+        Group {
+            Button {
+                showingSoloOptions = true
+            } label: {
+                Text("Play Solo", comment: "A game mode where the player plays in single-player mode.")
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(!gameModel.readyToStart)
+            
+            Button {
+                print("Starting as SharePlay", groupStateObserver.isEligibleForGroupSession)
+                
+                Task {
+                    do {
+                        try await startSession()
+                    } catch {
+                        print("SharePlay session failure", error)
+                    }
+                }
+            } label: {
+                Text("Play with Friends", comment: "A game mode where the player plays in multi-player mode.")
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(!groupStateObserver.isEligibleForGroupSession)
+        }
+        .font(.system(size: 16, weight: .bold))
+        .frame(width: 200)
+    }
+    
+    var soloModeSelection: some View {
+        VStack(spacing: 12) {
+            Text("Select Game Mode", comment: "Title for solo mode selection")
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            Button {
+                gameModel.soloGameMode = .normal
+                startSoloGame()
+            } label: {
+                Text("Normal Play", comment: "Normal gameplay mode")
+                    .frame(maxWidth: .infinity)
+            }
+            
+            Button {
+                gameModel.soloGameMode = .recording
+                startSoloGame()
+            } label: {
+                Text("Recording Mode", comment: "Mode to record hand movements")
+                    .frame(maxWidth: .infinity)
+            }
+            
+            Button {
+                isShowingFileImporter = true
+            } label: {
+                Text("Playback Mode", comment: "Mode to play with recorded hand data")
+                    .frame(maxWidth: .infinity)
+            }
+            
+            Button {
+                showingSoloOptions = false
+            } label: {
+                Text("Back", comment: "Go back to main menu")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        }
+        .font(.system(size: 16, weight: .bold))
+        .frame(width: 200)
+    }
+    
+    private func startSoloGame() {
+        gameModel.isPlaying = true
+        gameModel.timeLeft = GameModel.gameTime
+    }
+    
+    private func loadAndStartPlayback(from url: URL) {
+        do {
+            guard url.startAccessingSecurityScopedResource() else {
+                print("Could not access security scoped resource")
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            let data = try Data(contentsOf: url)
+            let recording = try JSONDecoder().decode(HandPoseRecording.self, from: data)
+            gameModel.playbackRecording = recording
+            gameModel.soloGameMode = .playback
+            startSoloGame()
+        } catch {
+            print("Failed to load recording: \(error)")
         }
     }
 }

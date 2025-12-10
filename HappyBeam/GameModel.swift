@@ -9,10 +9,27 @@ import AVKit
 import RealityKit
 import SwiftUI
 
+/// The different game modes available in solo play.
+enum SoloGameMode {
+    /// Normal gameplay without recording or playback.
+    case normal
+    /// Recording mode - only displays user's hand visualization.
+    case recording
+    /// Playback mode - displays recorded hand data while playing.
+    case playback
+}
+
 /// State that drives the different screens of the game and options that players select.
 @Observable
 class GameModel {
     var isPlaying = false
+    
+    /// The current solo game mode.
+    var soloGameMode: SoloGameMode = .normal
+    
+    /// The recording to play back in playback mode.
+    var playbackRecording: HandPoseRecording?
+    
     var isPaused = false {
         didSet {
             if isPaused == true {
@@ -148,6 +165,8 @@ class GameModel {
         isInputSelected = false
         inputKind = .hands
         players = initialPlayers
+        soloGameMode = .normal
+        playbackRecording = nil
         
         #if targetEnvironment(simulator)
         Player.localName = players.first!.name
