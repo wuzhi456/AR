@@ -146,6 +146,11 @@ struct Start: View {
                 .font(.headline)
                 .padding(.bottom, 5)
             
+            // Debug: show count
+            Text("Found \(savedRecordings.count) recordings")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
             if savedRecordings.isEmpty {
                 Text("No recordings found")
                     .foregroundColor(.secondary)
@@ -185,6 +190,10 @@ struct Start: View {
         }
         .font(.system(size: 16, weight: .bold))
         .frame(width: 250)
+        .onAppear {
+            // Refresh list when view appears to ensure state is current
+            refreshRecordingsList()
+        }
     }
     
     private func refreshRecordingsList() {
