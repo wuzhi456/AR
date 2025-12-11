@@ -19,11 +19,15 @@ struct SoloPlay: View {
                     recordingModeIndicator
                 }
                 
-                if gameModel.soloGameMode == .recording {
+                switch gameModel.soloGameMode {
+                case .recording:
                     // Recording mode UI
                     recordingModeUI
-                } else {
-                    // Normal/Playback mode UI
+                case .playback:
+                    // Playback mode UI
+                    playbackModeUI
+                case .normal:
+                    // Normal mode UI
                     normalModeUI
                 }
             }
@@ -89,7 +93,7 @@ struct SoloPlay: View {
         if gameModel.soloGameMode == .recording {
             return gameModel.isActivelyRecording ? "record.circle.fill" : "record.circle"
         } else {
-            return "play.circle"
+            return gameModel.isActivelyPlayingBack ? "play.circle.fill" : "play.circle"
         }
     }
     
@@ -97,7 +101,7 @@ struct SoloPlay: View {
         if gameModel.soloGameMode == .recording {
             return gameModel.isActivelyRecording ? .red : .gray
         } else {
-            return .green
+            return gameModel.isActivelyPlayingBack ? .green : .gray
         }
     }
     
@@ -105,7 +109,7 @@ struct SoloPlay: View {
         if gameModel.soloGameMode == .recording {
             return gameModel.isActivelyRecording ? "Recording" : "Ready to Record"
         } else {
-            return "Playback"
+            return gameModel.isActivelyPlayingBack ? "Playing" : "Ready to Play"
         }
     }
     
@@ -215,7 +219,105 @@ struct SoloPlay: View {
         return String(format: "%02d:%02d.%01d", minutes, seconds, tenths)
     }
     
-    // MARK: - Normal/Playback Mode UI
+    private var formattedPlaybackTime: String {
+        let totalSeconds = Int(gameModel.playbackElapsedTime)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        let tenths = Int((gameModel.playbackElapsedTime - Double(totalSeconds)) * 10)
+        return String(format: "%02d:%02d.%01d", minutes, seconds, tenths)
+    }
+    
+    private var formattedPlaybackDuration: String {
+        let totalSeconds = Int(gameModel.playbackTotalDuration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    // MARK: - Playback Mode UI
+    
+    private var playbackModeUI: some View {
+        VStack(spacing: 0) {
+            // Time display
+            HStack(alignment: .top) {
+                Button {
+                    handlePlaybackBackButton()
+                } label: {
+                    Label("Back", systemImage: "chevron.backward")
+                        .labelStyle(.iconOnly)
+                }
+                .offset(x: -23)
+                
+                VStack(spacing: 0) {
+                    Text(formattedPlaybackTime)
+                        .font(.system(size: 50))
+                        .bold()
+                        .monospacedDigit()
+                        .foregroundColor(gameModel.isActivelyPlayingBack ? .green : .primary)
+                        .accessibilityLabel(Text("Playback Time"))
+                        .accessibilityValue(Text(formattedPlaybackTime))
+                    
+                    if gameModel.playbackTotalDuration > 0 {
+                        Text("/ \(formattedPlaybackDuration)")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .monospacedDigit()
+                    }
+                }
+                .padding(.leading, 0)
+                .padding(.trailing, 40)
+            }
+            
+            Text(gameModel.isActivelyPlayingBack ? "playing" : "ready")
+                .font(.system(size: 24))
+                .bold()
+                .accessibilityHidden(true)
+                .offset(y: -5)
+            
+            // Playback control buttons
+            HStack(spacing: 8) {
+                Spacer()
+                
+                // Play/Pause button
+                Button {
+                    handlePlaybackToggle()
+                } label: {
+                    Label(
+                        gameModel.isActivelyPlayingBack ? "Pause Playback" : "Start Playback",
+                        systemImage: gameModel.isActivelyPlayingBack ? "pause.circle.fill" : "play.circle"
+                    )
+                    .labelStyle(.iconOnly)
+                    .foregroundColor(gameModel.isActivelyPlayingBack ? .green : .primary)
+                }
+                
+                // Stop button (reset playback to beginning)
+                if gameModel.isActivelyPlayingBack || gameModel.playbackElapsedTime > 0 {
+                    Button {
+                        NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+                    } label: {
+                        Label("Stop", systemImage: "stop.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                }
+                
+                Spacer()
+            }
+            .background(
+                .regularMaterial,
+                in: .rect(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 12,
+                    bottomTrailingRadius: 12,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+            .frame(width: 260, height: 70)
+            .offset(y: 15)
+        }
+    }
+    
+    // MARK: - Normal Mode UI
     
     private var normalModeUI: some View {
         VStack(spacing: 0) {
@@ -322,6 +424,27 @@ struct SoloPlay: View {
             }
         }
     }
+    
+    private func handlePlaybackBackButton() {
+        // Stop playback if running
+        if gameModel.isActivelyPlayingBack {
+            NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+        }
+        Task {
+            await dismissImmersiveSpace()
+        }
+        gameModel.reset()
+    }
+    
+    private func handlePlaybackToggle() {
+        if gameModel.isActivelyPlayingBack {
+            // Pause playback
+            NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
+        } else {
+            // Start/resume playback
+            NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
+        }
+    }
 }
 
 // MARK: - Notification Names
@@ -331,6 +454,9 @@ extension Notification.Name {
     static let stopRecordingRequested = Notification.Name("stopRecordingRequested")
     static let saveRecordingRequested = Notification.Name("saveRecordingRequested")
     static let discardRecordingRequested = Notification.Name("discardRecordingRequested")
+    static let startPlaybackRequested = Notification.Name("startPlaybackRequested")
+    static let pausePlaybackRequested = Notification.Name("pausePlaybackRequested")
+    static let stopPlaybackRequested = Notification.Name("stopPlaybackRequested")
 }
 
 #Preview {

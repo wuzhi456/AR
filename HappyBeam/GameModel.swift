@@ -44,8 +44,24 @@ class GameModel {
     /// Recording elapsed time in seconds.
     var recordingElapsedTime: TimeInterval = 0
     
+    // MARK: - Playback Mode State
+    
+    /// Whether the user is actively playing back (user-controlled in playback mode).
+    var isActivelyPlayingBack = false
+    
+    /// Playback elapsed time in seconds.
+    var playbackElapsedTime: TimeInterval = 0
+    
+    /// Total duration of the playback recording.
+    var playbackTotalDuration: TimeInterval = 0
+    
     var isPaused = false {
         didSet {
+            // Skip game-related music control for recording/playback modes
+            if soloGameMode == .recording || soloGameMode == .playback {
+                return
+            }
+            
             if isPaused == true {
                 gameplayPlayer.pause()
                 
@@ -187,6 +203,11 @@ class GameModel {
         hasUnsavedRecording = false
         showingSaveConfirmation = false
         recordingElapsedTime = 0
+        
+        // Reset playback mode state
+        isActivelyPlayingBack = false
+        playbackElapsedTime = 0
+        playbackTotalDuration = 0
         
         #if targetEnvironment(simulator)
         Player.localName = players.first!.name
