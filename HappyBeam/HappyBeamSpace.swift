@@ -211,6 +211,18 @@ struct HappyBeamSpace: View {
             // Start recording or playback based on game mode
             await handleGameModeStart()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .startRecordingRequested)) { _ in
+            startRecording()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stopRecordingRequested)) { _ in
+            stopRecording()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .saveRecordingRequested)) { _ in
+            saveRecording()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .discardRecordingRequested)) { _ in
+            discardRecording()
+        }
         .onChange(of: gameModel.controllerLastInput) {
             gameControllerLoop()
         }
@@ -225,9 +237,8 @@ struct HappyBeamSpace: View {
     
     private func setupHandVisualizations(content: RealityViewContent) {
         // Create hand visualizations for recording mode (user's hands)
-        // Use renderOnTop: true so visualization is not occluded by user's actual hands
-        let leftVis = HandVisualization(name: "LeftHandVisualization", jointColor: .cyan, boneColor: .white, renderOnTop: true)
-        let rightVis = HandVisualization(name: "RightHandVisualization", jointColor: .magenta, boneColor: .white, renderOnTop: true)
+        let leftVis = HandVisualization(name: "LeftHandVisualization", jointColor: .cyan, boneColor: .white)
+        let rightVis = HandVisualization(name: "RightHandVisualization", jointColor: .magenta, boneColor: .white)
         
         // Create hand visualizations for playback mode (recorded hands - different color)
         let playbackLeftVis = HandVisualization(name: "PlaybackLeftHandVisualization", jointColor: .green, boneColor: .yellow)
@@ -273,24 +284,28 @@ struct HappyBeamSpace: View {
             playbackRightHandVisualization?.clear()
             
         case .recording:
-            // Recording mode: show user's hands only (with interpolation for missing joints)
-            leftHandVisualization?.update(with: leftJoints, interpolateMissing: true)
-            rightHandVisualization?.update(with: rightJoints, interpolateMissing: true)
+            // Recording mode: show user's hands only
+            leftHandVisualization?.update(with: leftJoints)
+            rightHandVisualization?.update(with: rightJoints)
             playbackLeftHandVisualization?.clear()
             playbackRightHandVisualization?.clear()
             
-            // Capture frame for recording (capture actual detected joints, not interpolated)
-            captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+            // Only capture frame when actively recording (user has pressed start)
+            if gameModel.isActivelyRecording {
+                captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+                // Update elapsed time in game model
+                gameModel.recordingElapsedTime = captureManager.recordingElapsedTime
+            }
             
         case .playback:
             // Playback mode: show playback hands only (not user's hands)
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
             
-            // Update playback visualization if available (with interpolation for missing joints)
+            // Update playback visualization if available
             if let frame = captureManager.currentPlaybackFrame {
-                playbackLeftHandVisualization?.update(with: frame.leftJoints, interpolateMissing: true)
-                playbackRightHandVisualization?.update(with: frame.rightJoints, interpolateMissing: true)
+                playbackLeftHandVisualization?.update(with: frame.leftJoints)
+                playbackRightHandVisualization?.update(with: frame.rightJoints)
             } else {
                 playbackLeftHandVisualization?.clear()
                 playbackRightHandVisualization?.clear()
@@ -301,7 +316,7 @@ struct HappyBeamSpace: View {
     // MARK: - Game Mode Handling
     
     /// Handles the start of the game based on the selected game mode.
-    /// Normal mode requires no additional setup; recording and playback modes initialize their respective handlers.
+    /// Normal mode requires no additional setup; recording mode waits for user input; playback mode starts automatically.
     private func handleGameModeStart() async {
         switch gameModel.soloGameMode {
         case .normal:
@@ -309,13 +324,43 @@ struct HappyBeamSpace: View {
             break
             
         case .recording:
-            captureManager.startRecording()
+            // Recording mode: wait for user to press start button
+            // Do not auto-start recording
+            break
             
         case .playback:
             if let recording = gameModel.playbackRecording {
                 captureManager.beginPlayback(with: recording)
             }
         }
+    }
+    
+    // MARK: - Recording Control Methods
+    
+    private func startRecording() {
+        captureManager.startRecording()
+        gameModel.isActivelyRecording = true
+        gameModel.hasUnsavedRecording = false
+    }
+    
+    private func stopRecording() {
+        captureManager.stopRecording()
+        gameModel.isActivelyRecording = false
+        gameModel.hasUnsavedRecording = captureManager.hasUnsavedRecording
+    }
+    
+    private func saveRecording() {
+        Task {
+            await captureManager.saveRecording()
+            gameModel.hasUnsavedRecording = false
+            gameModel.recordingElapsedTime = 0
+        }
+    }
+    
+    private func discardRecording() {
+        captureManager.discardRecording()
+        gameModel.hasUnsavedRecording = false
+        gameModel.recordingElapsedTime = 0
     }
     
     private func handleGameEnd() {
@@ -325,8 +370,9 @@ struct HappyBeamSpace: View {
             break
             
         case .recording:
-            Task {
-                await captureManager.stopRecordingAndSave()
+            // Stop recording if active, but don't auto-save - let user decide
+            if gameModel.isActivelyRecording {
+                stopRecording()
             }
             
         case .playback:
