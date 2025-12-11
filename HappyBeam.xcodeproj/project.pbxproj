@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		1F8249602A16EEDA00C2F5D3 /* Cloud.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 1F82495F2A16EEDA00C2F5D3 /* Cloud.usdz */; };
+		264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F12EEAA816002E2933 /* HandCaptureManager.swift */; };
+		264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F22EEAA816002E2933 /* HandPoseData.swift */; };
+		264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F32EEAA816002E2933 /* HandVisualization.swift */; };
 		321A0C13291C02B80042A987 /* HappyBeamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321A0C12291C02B80042A987 /* HappyBeamApp.swift */; };
 		321A0C19291C02B90042A987 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C18291C02B90042A987 /* Assets.xcassets */; };
 		321A0C1C291C02B90042A987 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C1B291C02B90042A987 /* Preview Assets.xcassets */; };
@@ -44,6 +47,9 @@
 
 /* Begin PBXFileReference section */
 		1F82495F2A16EEDA00C2F5D3 /* Cloud.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = Cloud.usdz; sourceTree = "<group>"; };
+		264737F12EEAA816002E2933 /* HandCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCaptureManager.swift; sourceTree = "<group>"; };
+		264737F22EEAA816002E2933 /* HandPoseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandPoseData.swift; sourceTree = "<group>"; };
+		264737F32EEAA816002E2933 /* HandVisualization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandVisualization.swift; sourceTree = "<group>"; };
 		321A0C0B291C02B80042A987 /* HappyBeam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBeam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		321A0C12291C02B80042A987 /* HappyBeamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HappyBeamApp.swift; sourceTree = "<group>"; };
 		321A0C18291C02B90042A987 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -186,6 +192,9 @@
 		32791FAF2A30CEF3000290A2 /* Gameplay */ = {
 			isa = PBXGroup;
 			children = (
+				264737F12EEAA816002E2933 /* HandCaptureManager.swift */,
+				264737F22EEAA816002E2933 /* HandPoseData.swift */,
+				264737F32EEAA816002E2933 /* HandVisualization.swift */,
 				32791FB02A30CF24000290A2 /* BeamCollisions.swift */,
 				32665A94299AAFE200EBA549 /* Clouds.swift */,
 				322C5442291D892800C32983 /* HeartGestureModel.swift */,
@@ -319,6 +328,9 @@
 				322C5443291D892800C32983 /* HeartGestureModel.swift in Sources */,
 				32372A652991951F00F10755 /* Players.swift in Sources */,
 				32665A95299AAFE200EBA549 /* Clouds.swift in Sources */,
+				264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */,
+				264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */,
+				264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */,
 				324F304D298AF28C00200F22 /* MultiScore.swift in Sources */,
 				324F304B298AED7300200F22 /* MultiPlay.swift in Sources */,
 				324F3047298AE68600200F22 /* SoloPlay.swift in Sources */,
@@ -467,7 +479,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 5U6S4LX953;
+				DEVELOPMENT_TEAM = WNHN732FB8;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -503,7 +515,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
-				DEVELOPMENT_TEAM = 5U6S4LX953;
+				DEVELOPMENT_TEAM = WNHN732FB8;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
