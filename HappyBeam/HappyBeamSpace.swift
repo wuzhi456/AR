@@ -225,8 +225,9 @@ struct HappyBeamSpace: View {
     
     private func setupHandVisualizations(content: RealityViewContent) {
         // Create hand visualizations for recording mode (user's hands)
-        let leftVis = HandVisualization(name: "LeftHandVisualization", jointColor: .cyan, boneColor: .white)
-        let rightVis = HandVisualization(name: "RightHandVisualization", jointColor: .magenta, boneColor: .white)
+        // Use renderOnTop: true so visualization is not occluded by user's actual hands
+        let leftVis = HandVisualization(name: "LeftHandVisualization", jointColor: .cyan, boneColor: .white, renderOnTop: true)
+        let rightVis = HandVisualization(name: "RightHandVisualization", jointColor: .magenta, boneColor: .white, renderOnTop: true)
         
         // Create hand visualizations for playback mode (recorded hands - different color)
         let playbackLeftVis = HandVisualization(name: "PlaybackLeftHandVisualization", jointColor: .green, boneColor: .yellow)
@@ -272,13 +273,13 @@ struct HappyBeamSpace: View {
             playbackRightHandVisualization?.clear()
             
         case .recording:
-            // Recording mode: show user's hands only
-            leftHandVisualization?.update(with: leftJoints)
-            rightHandVisualization?.update(with: rightJoints)
+            // Recording mode: show user's hands only (with interpolation for missing joints)
+            leftHandVisualization?.update(with: leftJoints, interpolateMissing: true)
+            rightHandVisualization?.update(with: rightJoints, interpolateMissing: true)
             playbackLeftHandVisualization?.clear()
             playbackRightHandVisualization?.clear()
             
-            // Capture frame for recording
+            // Capture frame for recording (capture actual detected joints, not interpolated)
             captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
             
         case .playback:
@@ -286,10 +287,10 @@ struct HappyBeamSpace: View {
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
             
-            // Update playback visualization if available
+            // Update playback visualization if available (with interpolation for missing joints)
             if let frame = captureManager.currentPlaybackFrame {
-                playbackLeftHandVisualization?.update(with: frame.leftJoints)
-                playbackRightHandVisualization?.update(with: frame.rightJoints)
+                playbackLeftHandVisualization?.update(with: frame.leftJoints, interpolateMissing: true)
+                playbackRightHandVisualization?.update(with: frame.rightJoints, interpolateMissing: true)
             } else {
                 playbackLeftHandVisualization?.clear()
                 playbackRightHandVisualization?.clear()

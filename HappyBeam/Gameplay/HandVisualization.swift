@@ -18,18 +18,24 @@ class HandVisualization {
     private let boneRadius: Float = 0.003
     private let jointColor: UIColor
     private let boneColor: UIColor
+    private let renderOnTop: Bool
+    
+    // Store last known positions for interpolation
+    private var lastKnownJoints: [String: HandJointPose] = [:]
     
     let rootEntity: Entity
     
-    init(name: String, jointColor: UIColor = .cyan, boneColor: UIColor = .white) {
+    init(name: String, jointColor: UIColor = .cyan, boneColor: UIColor = .white, renderOnTop: Bool = false) {
         self.rootEntity = Entity()
         self.rootEntity.name = name
         self.jointColor = jointColor
         self.boneColor = boneColor
+        self.renderOnTop = renderOnTop
     }
     
     /// Updates the visualization with new joint poses.
-    func update(with joints: [HandJointPose]) {
+    /// When interpolateMissing is true, uses last known positions for missing joints.
+    func update(with joints: [HandJointPose], interpolateMissing: Bool = false) {
         guard !joints.isEmpty else {
             // Hide all entities when no joints are detected
             rootEntity.isEnabled = false
@@ -50,14 +56,25 @@ class HandVisualization {
         var jointDict: [String: HandJointPose] = [:]
         for joint in joints {
             jointDict[joint.name] = joint
+            // Update last known position
+            lastKnownJoints[joint.name] = joint
+        }
+        
+        // If interpolation is enabled, add last known joints for missing ones
+        if interpolateMissing {
+            for (name, lastJoint) in lastKnownJoints {
+                if jointDict[name] == nil {
+                    jointDict[name] = lastJoint
+                }
+            }
         }
         
         // Update joint spheres
-        for joint in joints {
-            let jointEntity = getOrCreateJointEntity(named: joint.name)
+        for (name, joint) in jointDict {
+            let jointEntity = getOrCreateJointEntity(named: name)
             jointEntity.isEnabled = true
             jointEntity.setTransformMatrix(joint.transformMatrix, relativeTo: nil)
-            activeJointNames.insert(joint.name)
+            activeJointNames.insert(name)
         }
         
         // Update bone cylinders
@@ -90,7 +107,7 @@ class HandVisualization {
         }
     }
     
-    /// Clears all visualization entities.
+    /// Clears all visualization entities and resets interpolation state.
     func clear() {
         rootEntity.isEnabled = false
         for entity in jointEntities.values {
@@ -99,6 +116,7 @@ class HandVisualization {
         for entity in boneEntities.values {
             entity.isEnabled = false
         }
+        lastKnownJoints.removeAll()
     }
     
     private func getOrCreateJointEntity(named name: String) -> ModelEntity {
@@ -107,9 +125,20 @@ class HandVisualization {
         }
         
         let mesh = MeshResource.generateSphere(radius: jointRadius)
-        let material = SimpleMaterial(color: jointColor, roughness: 0.15, isMetallic: false)
+        var material = UnlitMaterial(color: jointColor)
+        if renderOnTop {
+            // Use unlit material for better visibility when rendering on top
+            material = UnlitMaterial(color: jointColor)
+        }
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.name = "joint-\(name)"
+        
+        // Set rendering order for on-top rendering
+        if renderOnTop {
+            // Use a high rendering order to render on top of other objects
+            entity.components.set(ModelSortGroupComponent(group: .init(depthPass: .postPass), order: 1000))
+        }
+        
         rootEntity.addChild(entity)
         jointEntities[name] = entity
         return entity
@@ -122,9 +151,18 @@ class HandVisualization {
         
         // Create a unit cylinder that will be scaled and positioned for each bone
         let mesh = MeshResource.generateCylinder(height: 1.0, radius: boneRadius)
-        let material = SimpleMaterial(color: boneColor, roughness: 0.15, isMetallic: false)
+        var material = UnlitMaterial(color: boneColor)
+        if renderOnTop {
+            material = UnlitMaterial(color: boneColor)
+        }
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.name = "bone-\(name)"
+        
+        // Set rendering order for on-top rendering
+        if renderOnTop {
+            entity.components.set(ModelSortGroupComponent(group: .init(depthPass: .postPass), order: 1000))
+        }
+        
         rootEntity.addChild(entity)
         boneEntities[name] = entity
         return entity
