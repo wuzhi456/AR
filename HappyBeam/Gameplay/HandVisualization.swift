@@ -93,7 +93,7 @@ class HandVisualization {
         }
         
         let mesh = MeshResource.generateSphere(radius: jointRadius)
-        let material = SimpleMaterial(color: SimpleMaterial.Color(Color(uiColor: jointColor)), roughness: 0.15, isMetallic: false)
+        let material = SimpleMaterial(color: jointColor, roughness: 0.15, isMetallic: false)
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.name = "joint-\(name)"
         rootEntity.addChild(entity)
@@ -108,7 +108,7 @@ class HandVisualization {
         
         // Create a unit cylinder that will be scaled and positioned for each bone
         let mesh = MeshResource.generateCylinder(height: 1.0, radius: boneRadius)
-        let material = SimpleMaterial(color: SimpleMaterial.Color(Color(uiColor: boneColor)), roughness: 0.15, isMetallic: false)
+        let material = SimpleMaterial(color: boneColor, roughness: 0.15, isMetallic: false)
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.name = "bone-\(name)"
         rootEntity.addChild(entity)
