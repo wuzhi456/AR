@@ -156,36 +156,36 @@ struct Start: View {
                     .foregroundColor(.secondary)
                     .padding()
             } else {
-                // Show recording buttons directly without ScrollView to debug
-                VStack(spacing: 8) {
-                    ForEach(Array(savedRecordings.enumerated()), id: \.offset) { index, url in
-                        Button {
-                            print("Selected recording: \(url.lastPathComponent)")
-                            loadAndStartPlayback(from: url)
-                        } label: {
-                            Text(url.deletingPathExtension().lastPathComponent)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .background(Color.blue.opacity(0.2))
-                                .cornerRadius(8)
+                // Use ScrollView with proper spacing for the recording list
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(Array(savedRecordings.enumerated()), id: \.offset) { index, url in
+                            Button(action: {
+                                print("Button tapped for: \(url.lastPathComponent)")
+                                loadAndStartPlayback(from: url)
+                            }) {
+                                Text(url.deletingPathExtension().lastPathComponent)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 4)
                 }
-                .frame(maxHeight: 200)
+                .frame(height: min(CGFloat(savedRecordings.count) * 50, 180))
             }
             
-            Button {
+            Button(action: {
                 isShowingFileImporter = true
-            } label: {
+            }) {
                 Text("Import from Files", comment: "Import recording from file system")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             
-            Button {
+            Button(action: {
                 showingRecordingsList = false
-            } label: {
+            }) {
                 Text("Back", comment: "Go back to mode selection")
                     .frame(maxWidth: .infinity)
             }
