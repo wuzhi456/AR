@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 The play screen for single player.
@@ -14,6 +14,23 @@ struct SoloPlay: View {
     var body: some View {
         HStack(alignment: .top) {
             VStack(spacing: 0) {
+                // Mode indicator
+                if gameModel.soloGameMode != .normal {
+                    HStack {
+                        Image(systemName: gameModel.soloGameMode == .recording ? "record.circle" : "play.circle")
+                            .foregroundColor(gameModel.soloGameMode == .recording ? .red : .green)
+                        Text(gameModel.soloGameMode == .recording ? "Recording" : "Playback")
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        .ultraThinMaterial,
+                        in: Capsule()
+                    )
+                    .padding(.bottom, 4)
+                }
+                
                 let progress = Float(gameModel.timeLeft) / Float(GameModel.gameTime)
                 HStack(alignment: .top) {
                     Button {

@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 The space where the game takes place.
@@ -12,6 +12,7 @@ import GameController
 import RealityKit
 import SwiftUI
 import HappyBeamAssets
+import ARKit
 
 /// The Full Space that displays when someone plays the game.
 struct HappyBeamSpace: View {
@@ -27,6 +28,15 @@ struct HappyBeamSpace: View {
     @State private var collisionSubscription: EventSubscription?
     @State private var activationSubscription: EventSubscription?
     
+    // Hand visualization state
+    @State private var leftHandVisualization: HandVisualization?
+    @State private var rightHandVisualization: HandVisualization?
+    @State private var playbackLeftHandVisualization: HandVisualization?
+    @State private var playbackRightHandVisualization: HandVisualization?
+    
+    // Recording/playback management
+    @StateObject private var captureManager = HandCaptureManager()
+    
     var collisionEntity = Entity()
     
     var body: some View {
@@ -35,6 +45,9 @@ struct HappyBeamSpace: View {
             content.add(spaceOrigin)
             content.add(cameraRelativeAnchor)
             spaceOrigin.addChild(beamIntermediate)
+            
+            // Setup hand visualizations
+            setupHandVisualizations(content: content)
             
             // MARK: Events
             activationSubscription = content.subscribe(to: AccessibilityEvents.Activate.self, on: nil, componentType: nil) { activation in
@@ -86,6 +99,9 @@ struct HappyBeamSpace: View {
             }
         }
         update: { updateContent in
+            // Update hand visualizations based on game mode
+            updateHandVisualizations()
+            
             let handsCenterTransform = gestureModel.computeTransformOfUserPerformedHeartGesture()
             if let handsCenter = handsCenterTransform {
                 let position = Pose3D(handsCenter)!.position
@@ -191,9 +207,137 @@ struct HappyBeamSpace: View {
         .task {
             await gestureModel.monitorSessionEvents()
         }
+        .task {
+            // Start recording or playback based on game mode
+            await handleGameModeStart()
+        }
         .onChange(of: gameModel.controllerLastInput) {
             gameControllerLoop()
         }
+        .onChange(of: gameModel.isFinished) { _, isFinished in
+            if isFinished {
+                handleGameEnd()
+            }
+        }
+    }
+    
+    // MARK: - Hand Visualization Setup
+    
+    private func setupHandVisualizations(content: RealityViewContent) {
+        // Create hand visualizations for recording mode (user's hands)
+        // Use renderOnTop: true so visualization is not occluded by user's actual hands
+        let leftVis = HandVisualization(name: "LeftHandVisualization", jointColor: .cyan, boneColor: .white, renderOnTop: true)
+        let rightVis = HandVisualization(name: "RightHandVisualization", jointColor: .magenta, boneColor: .white, renderOnTop: true)
+        
+        // Create hand visualizations for playback mode (recorded hands - different color)
+        let playbackLeftVis = HandVisualization(name: "PlaybackLeftHandVisualization", jointColor: .green, boneColor: .yellow)
+        let playbackRightVis = HandVisualization(name: "PlaybackRightHandVisualization", jointColor: .orange, boneColor: .yellow)
+        
+        content.add(leftVis.rootEntity)
+        content.add(rightVis.rootEntity)
+        content.add(playbackLeftVis.rootEntity)
+        content.add(playbackRightVis.rootEntity)
+        
+        // Initially hide all visualizations
+        leftVis.rootEntity.isEnabled = false
+        rightVis.rootEntity.isEnabled = false
+        playbackLeftVis.rootEntity.isEnabled = false
+        playbackRightVis.rootEntity.isEnabled = false
+        
+        leftHandVisualization = leftVis
+        rightHandVisualization = rightVis
+        playbackLeftHandVisualization = playbackLeftVis
+        playbackRightHandVisualization = playbackRightVis
+    }
+    
+    // MARK: - Hand Visualization Update
+    
+    private func updateHandVisualizations() {
+        guard gameModel.isPlaying && !gameModel.isPaused else {
+            leftHandVisualization?.clear()
+            rightHandVisualization?.clear()
+            playbackLeftHandVisualization?.clear()
+            playbackRightHandVisualization?.clear()
+            return
+        }
+        
+        let leftJoints = extractJointPoses(from: gestureModel.latestHandTracking.left)
+        let rightJoints = extractJointPoses(from: gestureModel.latestHandTracking.right)
+        
+        switch gameModel.soloGameMode {
+        case .normal:
+            // Normal mode: no hand visualization
+            leftHandVisualization?.clear()
+            rightHandVisualization?.clear()
+            playbackLeftHandVisualization?.clear()
+            playbackRightHandVisualization?.clear()
+            
+        case .recording:
+            // Recording mode: show user's hands only (with interpolation for missing joints)
+            leftHandVisualization?.update(with: leftJoints, interpolateMissing: true)
+            rightHandVisualization?.update(with: rightJoints, interpolateMissing: true)
+            playbackLeftHandVisualization?.clear()
+            playbackRightHandVisualization?.clear()
+            
+            // Capture frame for recording (capture actual detected joints, not interpolated)
+            captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+            
+        case .playback:
+            // Playback mode: show playback hands only (not user's hands)
+            leftHandVisualization?.clear()
+            rightHandVisualization?.clear()
+            
+            // Update playback visualization if available (with interpolation for missing joints)
+            if let frame = captureManager.currentPlaybackFrame {
+                playbackLeftHandVisualization?.update(with: frame.leftJoints, interpolateMissing: true)
+                playbackRightHandVisualization?.update(with: frame.rightJoints, interpolateMissing: true)
+            } else {
+                playbackLeftHandVisualization?.clear()
+                playbackRightHandVisualization?.clear()
+            }
+        }
+    }
+    
+    // MARK: - Game Mode Handling
+    
+    /// Handles the start of the game based on the selected game mode.
+    /// Normal mode requires no additional setup; recording and playback modes initialize their respective handlers.
+    private func handleGameModeStart() async {
+        switch gameModel.soloGameMode {
+        case .normal:
+            // Normal mode: no special initialization needed
+            break
+            
+        case .recording:
+            captureManager.startRecording()
+            
+        case .playback:
+            if let recording = gameModel.playbackRecording {
+                captureManager.beginPlayback(with: recording)
+            }
+        }
+    }
+    
+    private func handleGameEnd() {
+        switch gameModel.soloGameMode {
+        case .normal:
+            // Normal mode: no cleanup needed
+            break
+            
+        case .recording:
+            Task {
+                await captureManager.stopRecordingAndSave()
+            }
+            
+        case .playback:
+            captureManager.stopPlayback()
+        }
+        
+        // Clear all visualizations
+        leftHandVisualization?.clear()
+        rightHandVisualization?.clear()
+        playbackLeftHandVisualization?.clear()
+        playbackRightHandVisualization?.clear()
     }
     
     // Send each player's beam data during FaceTime calls that are spatial.
