@@ -220,7 +220,8 @@ final class HandCaptureManager: ObservableObject {
         }
         
         isPlayingBack = true
-        let frames = Array(recording.frames.dropFirst(playbackStartIndex))
+        let startIndexOffset = playbackStartIndex
+        let frames = Array(recording.frames.dropFirst(startIndexOffset))
         let baseOffset = playbackStartOffset
         
         playbackTask = Task {
@@ -242,10 +243,11 @@ final class HandCaptureManager: ObservableObject {
                 }
                 
                 guard !Task.isCancelled else { break }
+                let absoluteIndex = startIndexOffset + index
                 await MainActor.run {
                     self.currentPlaybackFrame = frame
                     self.playbackElapsedTime = frame.timestamp
-                    self.playbackStartIndex = self.playbackStartIndex + index
+                    self.playbackStartIndex = absoluteIndex
                     self.playbackStartOffset = frame.timestamp
                 }
             }
