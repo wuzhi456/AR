@@ -189,14 +189,22 @@ struct Start: View {
     
     private func refreshRecordingsList() {
         guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("Failed to get documents directory")
             savedRecordings = []
             return
         }
         
+        print("Looking for recordings in: \(directory.path)")
+        
         do {
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            print("Found \(files.count) files in Documents directory")
+            for file in files {
+                print("  - \(file.lastPathComponent)")
+            }
             savedRecordings = files.filter { $0.lastPathComponent.hasPrefix("HandPose_") && $0.pathExtension == "json" }
                 .sorted { $0.lastPathComponent > $1.lastPathComponent }
+            print("Filtered to \(savedRecordings.count) HandPose recordings")
         } catch {
             print("Failed to list recordings: \(error)")
             savedRecordings = []

@@ -31,12 +31,20 @@ class HandVisualization {
     /// Updates the visualization with new joint poses.
     func update(with joints: [HandJointPose]) {
         guard !joints.isEmpty else {
+            // Hide all entities when no joints are detected
             rootEntity.isEnabled = false
+            for entity in jointEntities.values {
+                entity.isEnabled = false
+            }
+            for entity in boneEntities.values {
+                entity.isEnabled = false
+            }
             return
         }
         
         rootEntity.isEnabled = true
         var activeJointNames = Set<String>()
+        var activeBoneNames = Set<String>()
         
         // Create a dictionary for quick joint lookup
         var jointDict: [String: HandJointPose] = [:]
@@ -62,6 +70,7 @@ class HandVisualization {
             let boneName = "\(connection.startJoint)-\(connection.endJoint)"
             let boneEntity = getOrCreateBoneEntity(named: boneName)
             boneEntity.isEnabled = true
+            activeBoneNames.insert(boneName)
             
             updateBoneTransform(
                 entity: boneEntity,
@@ -72,6 +81,11 @@ class HandVisualization {
         
         // Disable unused joint entities
         for (name, entity) in jointEntities where !activeJointNames.contains(name) {
+            entity.isEnabled = false
+        }
+        
+        // Disable unused bone entities
+        for (name, entity) in boneEntities where !activeBoneNames.contains(name) {
             entity.isEnabled = false
         }
     }
