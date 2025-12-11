@@ -40,6 +40,34 @@ struct HappyBeamSpace: View {
     var collisionEntity = Entity()
     
     var body: some View {
+        realityViewContent
+            .gesture(dragGesture)
+            .modifier(TasksModifier(
+                gestureModel: gestureModel,
+                handleGameModeStart: handleGameModeStart
+            ))
+            .modifier(NotificationModifier(
+                startRecording: startRecording,
+                stopRecording: stopRecording,
+                saveRecording: saveRecording,
+                discardRecording: discardRecording,
+                startPlayback: startPlayback,
+                pausePlayback: pausePlayback,
+                stopPlayback: stopPlayback
+            ))
+            .onChange(of: gameModel.controllerLastInput) {
+                gameControllerLoop()
+            }
+            .onChange(of: gameModel.isFinished) { _, isFinished in
+                if isFinished {
+                    handleGameEnd()
+                }
+            }
+    }
+    
+    // MARK: - View Components
+    
+    private var realityViewContent: some View {
         RealityView { content in
             // The root entity.
             content.add(spaceOrigin)
@@ -97,8 +125,7 @@ struct HappyBeamSpace: View {
                     }
                 }
             }
-        }
-        update: { updateContent in
+        } update: { updateContent in
             // Update hand visualizations based on game mode
             updateHandVisualizations()
             
@@ -148,7 +175,10 @@ struct HappyBeamSpace: View {
                 }
             }
         }
-        .gesture(DragGesture(minimumDistance: 0.0)
+    }
+    
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 0.0)
             .targetedToAnyEntity()
             .onChanged { @MainActor drag in
                 let entity = drag.entity
@@ -197,49 +227,6 @@ struct HappyBeamSpace: View {
                 }
                 endBlasterBeam()
             }
-        )
-        .task {
-            await gestureModel.start()
-        }
-        .task {
-            await gestureModel.publishHandTrackingUpdates()
-        }
-        .task {
-            await gestureModel.monitorSessionEvents()
-        }
-        .task {
-            // Start recording or playback based on game mode
-            await handleGameModeStart()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .startRecordingRequested)) { _ in
-            startRecording()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .stopRecordingRequested)) { _ in
-            stopRecording()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .saveRecordingRequested)) { _ in
-            saveRecording()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .discardRecordingRequested)) { _ in
-            discardRecording()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .startPlaybackRequested)) { _ in
-            startPlayback()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .pausePlaybackRequested)) { _ in
-            pausePlayback()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .stopPlaybackRequested)) { _ in
-            stopPlayback()
-        }
-        .onChange(of: gameModel.controllerLastInput) {
-            gameControllerLoop()
-        }
-        .onChange(of: gameModel.isFinished) { _, isFinished in
-            if isFinished {
-                handleGameEnd()
-            }
-        }
     }
     
     // MARK: - Hand Visualization Setup
@@ -627,4 +614,64 @@ func eventHasTarget(event: CollisionEvents.Began, matching targetName: String) -
     }
     
     return beam
+}
+
+// MARK: - View Modifiers for Type-Checking
+
+/// View modifier that groups async tasks to help Swift's type checker.
+struct TasksModifier: ViewModifier {
+    @ObservedObject var gestureModel: HeartGestureModel
+    var handleGameModeStart: () async -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .task {
+                await gestureModel.start()
+            }
+            .task {
+                await gestureModel.publishHandTrackingUpdates()
+            }
+            .task {
+                await gestureModel.monitorSessionEvents()
+            }
+            .task {
+                await handleGameModeStart()
+            }
+    }
+}
+
+/// View modifier that groups notification observers to help Swift's type checker.
+struct NotificationModifier: ViewModifier {
+    var startRecording: () -> Void
+    var stopRecording: () -> Void
+    var saveRecording: () -> Void
+    var discardRecording: () -> Void
+    var startPlayback: () -> Void
+    var pausePlayback: () -> Void
+    var stopPlayback: () -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .startRecordingRequested)) { _ in
+                startRecording()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .stopRecordingRequested)) { _ in
+                stopRecording()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .saveRecordingRequested)) { _ in
+                saveRecording()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .discardRecordingRequested)) { _ in
+                discardRecording()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .startPlaybackRequested)) { _ in
+                startPlayback()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .pausePlaybackRequested)) { _ in
+                pausePlayback()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .stopPlaybackRequested)) { _ in
+                stopPlayback()
+            }
+    }
 }
