@@ -23,10 +23,18 @@ final class HandCaptureManager: ObservableObject {
     /// The elapsed time since recording started (in seconds).
     @Published private(set) var recordingElapsedTime: TimeInterval = 0
     
+    /// The elapsed time since playback started (in seconds).
+    @Published private(set) var playbackElapsedTime: TimeInterval = 0
+    
     private var frames: [HandPoseFrame] = []
     private var recordingStart: TimeInterval = 0
     private var playbackTask: Task<Void, Never>?
     private var elapsedTimeTask: Task<Void, Never>?
+    
+    // Playback state for pause/resume
+    private var playbackRecording: HandPoseRecording?
+    private var playbackStartIndex: Int = 0
+    private var playbackStartOffset: TimeInterval = 0
     
     private static let filenameFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -142,9 +150,19 @@ final class HandCaptureManager: ObservableObject {
     
     /// Begins playback of a hand pose recording.
     func beginPlayback(with recording: HandPoseRecording) {
+        // If resuming from pause, continue from where we left off
+        if playbackRecording != nil && playbackStartIndex > 0 {
+            resumePlayback()
+            return
+        }
+        
         stopPlayback()
         guard !recording.frames.isEmpty else { return }
         
+        playbackRecording = recording
+        playbackStartIndex = 0
+        playbackStartOffset = 0
+        playbackElapsedTime = 0
         isPlayingBack = true
         let frames = recording.frames
         
@@ -155,7 +173,7 @@ final class HandCaptureManager: ObservableObject {
             }
             let startWallClock = CACurrentMediaTime()
             
-            for frame in frames {
+            for (index, frame) in frames.enumerated() {
                 guard !Task.isCancelled else { break }
                 
                 let elapsed = CACurrentMediaTime() - startWallClock
@@ -173,21 +191,91 @@ final class HandCaptureManager: ObservableObject {
                 guard !Task.isCancelled else { break }
                 await MainActor.run {
                     self.currentPlaybackFrame = frame
+                    self.playbackElapsedTime = frame.timestamp
+                    self.playbackStartIndex = index
+                    self.playbackStartOffset = frame.timestamp
                 }
             }
             
             await MainActor.run {
                 self.isPlayingBack = false
-                self.currentPlaybackFrame = nil
+                // Don't clear the frame so it stays visible
+                // Reset for next playback
+                self.playbackStartIndex = 0
+                self.playbackStartOffset = 0
             }
         }
     }
     
-    /// Stops the current playback.
+    /// Resumes playback from where it was paused.
+    private func resumePlayback() {
+        guard let recording = playbackRecording else { return }
+        guard playbackStartIndex < recording.frames.count else {
+            // Playback finished, restart from beginning
+            playbackStartIndex = 0
+            playbackStartOffset = 0
+            playbackElapsedTime = 0
+            beginPlayback(with: recording)
+            return
+        }
+        
+        isPlayingBack = true
+        let frames = Array(recording.frames.dropFirst(playbackStartIndex))
+        let baseOffset = playbackStartOffset
+        
+        playbackTask = Task {
+            let startWallClock = CACurrentMediaTime()
+            
+            for (index, frame) in frames.enumerated() {
+                guard !Task.isCancelled else { break }
+                
+                let elapsed = CACurrentMediaTime() - startWallClock
+                let target = frame.timestamp - baseOffset
+                
+                if target > elapsed {
+                    let delay = target - elapsed
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    } catch {
+                        break
+                    }
+                }
+                
+                guard !Task.isCancelled else { break }
+                await MainActor.run {
+                    self.currentPlaybackFrame = frame
+                    self.playbackElapsedTime = frame.timestamp
+                    self.playbackStartIndex = self.playbackStartIndex + index
+                    self.playbackStartOffset = frame.timestamp
+                }
+            }
+            
+            await MainActor.run {
+                self.isPlayingBack = false
+                // Reset for next playback
+                self.playbackStartIndex = 0
+                self.playbackStartOffset = 0
+            }
+        }
+    }
+    
+    /// Pauses the current playback (can be resumed later).
+    func pausePlayback() {
+        playbackTask?.cancel()
+        playbackTask = nil
+        isPlayingBack = false
+        // Keep currentPlaybackFrame and playbackStartIndex so we can resume
+    }
+    
+    /// Stops the current playback completely.
     func stopPlayback() {
         playbackTask?.cancel()
         playbackTask = nil
         isPlayingBack = false
         currentPlaybackFrame = nil
+        playbackElapsedTime = 0
+        playbackStartIndex = 0
+        playbackStartOffset = 0
+        playbackRecording = nil
     }
 }

@@ -227,7 +227,21 @@ struct Start: View {
     
     private func startSoloGame() {
         gameModel.isPlaying = true
-        gameModel.timeLeft = GameModel.gameTime
+        
+        // For recording and playback modes, skip countdown and go directly to the space
+        if gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback {
+            // Skip the normal game flow - directly open immersive space
+            gameModel.isInputSelected = true
+            gameModel.inputKind = .hands
+            gameModel.isSoloReady = true
+            // Stop menu music
+            gameModel.menuPlayer.pause()
+            Task {
+                await openImmersiveSpace(id: "happyBeam")
+            }
+        } else {
+            gameModel.timeLeft = GameModel.gameTime
+        }
     }
     
     private func loadAndStartPlayback(from url: URL) {

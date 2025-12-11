@@ -223,6 +223,15 @@ struct HappyBeamSpace: View {
         .onReceive(NotificationCenter.default.publisher(for: .discardRecordingRequested)) { _ in
             discardRecording()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .startPlaybackRequested)) { _ in
+            startPlayback()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pausePlaybackRequested)) { _ in
+            pausePlayback()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .stopPlaybackRequested)) { _ in
+            stopPlayback()
+        }
         .onChange(of: gameModel.controllerLastInput) {
             gameControllerLoop()
         }
@@ -264,7 +273,10 @@ struct HappyBeamSpace: View {
     // MARK: - Hand Visualization Update
     
     private func updateHandVisualizations() {
-        guard gameModel.isPlaying && !gameModel.isPaused else {
+        // For recording and playback modes, always show hand visualization regardless of isPaused
+        let isRecordingOrPlayback = gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback
+        
+        guard gameModel.isPlaying else {
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
             playbackLeftHandVisualization?.clear()
@@ -284,7 +296,7 @@ struct HappyBeamSpace: View {
             playbackRightHandVisualization?.clear()
             
         case .recording:
-            // Recording mode: show user's hands only
+            // Recording mode: always show user's hands
             leftHandVisualization?.update(with: leftJoints)
             rightHandVisualization?.update(with: rightJoints)
             playbackLeftHandVisualization?.clear()
@@ -302,13 +314,21 @@ struct HappyBeamSpace: View {
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
             
-            // Update playback visualization if available
-            if let frame = captureManager.currentPlaybackFrame {
+            // Update playback visualization only when actively playing
+            if gameModel.isActivelyPlayingBack, let frame = captureManager.currentPlaybackFrame {
                 playbackLeftHandVisualization?.update(with: frame.leftJoints)
                 playbackRightHandVisualization?.update(with: frame.rightJoints)
-            } else {
-                playbackLeftHandVisualization?.clear()
-                playbackRightHandVisualization?.clear()
+                // Update elapsed time in game model
+                gameModel.playbackElapsedTime = captureManager.playbackElapsedTime
+            } else if !gameModel.isActivelyPlayingBack {
+                // When paused or stopped, keep showing the current frame if available
+                if let frame = captureManager.currentPlaybackFrame {
+                    playbackLeftHandVisualization?.update(with: frame.leftJoints)
+                    playbackRightHandVisualization?.update(with: frame.rightJoints)
+                } else {
+                    playbackLeftHandVisualization?.clear()
+                    playbackRightHandVisualization?.clear()
+                }
             }
         }
     }
@@ -316,7 +336,7 @@ struct HappyBeamSpace: View {
     // MARK: - Game Mode Handling
     
     /// Handles the start of the game based on the selected game mode.
-    /// Normal mode requires no additional setup; recording mode waits for user input; playback mode starts automatically.
+    /// Normal mode requires no additional setup; recording and playback modes wait for user input.
     private func handleGameModeStart() async {
         switch gameModel.soloGameMode {
         case .normal:
@@ -329,9 +349,14 @@ struct HappyBeamSpace: View {
             break
             
         case .playback:
+            // Playback mode: set up duration but wait for user to start
             if let recording = gameModel.playbackRecording {
-                captureManager.beginPlayback(with: recording)
+                // Calculate total duration from recording
+                if let lastFrame = recording.frames.last {
+                    gameModel.playbackTotalDuration = lastFrame.timestamp
+                }
             }
+            // Do not auto-start playback
         }
     }
     
@@ -363,6 +388,26 @@ struct HappyBeamSpace: View {
         gameModel.recordingElapsedTime = 0
     }
     
+    // MARK: - Playback Control Methods
+    
+    private func startPlayback() {
+        if let recording = gameModel.playbackRecording {
+            captureManager.beginPlayback(with: recording)
+            gameModel.isActivelyPlayingBack = true
+        }
+    }
+    
+    private func pausePlayback() {
+        captureManager.pausePlayback()
+        gameModel.isActivelyPlayingBack = false
+    }
+    
+    private func stopPlayback() {
+        captureManager.stopPlayback()
+        gameModel.isActivelyPlayingBack = false
+        gameModel.playbackElapsedTime = 0
+    }
+    
     private func handleGameEnd() {
         switch gameModel.soloGameMode {
         case .normal:
@@ -377,6 +422,7 @@ struct HappyBeamSpace: View {
             
         case .playback:
             captureManager.stopPlayback()
+            gameModel.isActivelyPlayingBack = false
         }
         
         // Clear all visualizations
