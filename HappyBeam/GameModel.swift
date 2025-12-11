@@ -30,6 +30,20 @@ class GameModel {
     /// The recording to play back in playback mode.
     var playbackRecording: HandPoseRecording?
     
+    // MARK: - Recording Mode State
+    
+    /// Whether the user is actively recording (user-controlled in recording mode).
+    var isActivelyRecording = false
+    
+    /// Whether there is unsaved recording data that might be lost.
+    var hasUnsavedRecording = false
+    
+    /// Whether to show the "save recording" confirmation dialog.
+    var showingSaveConfirmation = false
+    
+    /// Recording elapsed time in seconds.
+    var recordingElapsedTime: TimeInterval = 0
+    
     var isPaused = false {
         didSet {
             if isPaused == true {
@@ -167,6 +181,12 @@ class GameModel {
         players = initialPlayers
         soloGameMode = .normal
         playbackRecording = nil
+        
+        // Reset recording mode state
+        isActivelyRecording = false
+        hasUnsavedRecording = false
+        showingSaveConfirmation = false
+        recordingElapsedTime = 0
         
         #if targetEnvironment(simulator)
         Player.localName = players.first!.name

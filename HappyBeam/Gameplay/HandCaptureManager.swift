@@ -17,9 +17,16 @@ final class HandCaptureManager: ObservableObject {
     @Published private(set) var currentPlaybackFrame: HandPoseFrame?
     @Published private(set) var lastSavedURL: URL?
     
+    /// Indicates whether there is unsaved recording data.
+    @Published private(set) var hasUnsavedRecording = false
+    
+    /// The elapsed time since recording started (in seconds).
+    @Published private(set) var recordingElapsedTime: TimeInterval = 0
+    
     private var frames: [HandPoseFrame] = []
     private var recordingStart: TimeInterval = 0
     private var playbackTask: Task<Void, Never>?
+    private var elapsedTimeTask: Task<Void, Never>?
     
     private static let filenameFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -32,7 +39,20 @@ final class HandCaptureManager: ObservableObject {
         stopPlayback()
         frames.removeAll()
         recordingStart = CACurrentMediaTime()
+        recordingElapsedTime = 0
         isRecording = true
+        hasUnsavedRecording = false
+        
+        // Start elapsed time update task
+        elapsedTimeTask?.cancel()
+        elapsedTimeTask = Task {
+            while !Task.isCancelled && isRecording {
+                await MainActor.run {
+                    self.recordingElapsedTime = CACurrentMediaTime() - self.recordingStart
+                }
+                try? await Task.sleep(nanoseconds: 100_000_000) // Update every 100ms
+            }
+        }
     }
     
     /// Captures a single frame of hand pose data.
@@ -46,18 +66,20 @@ final class HandCaptureManager: ObservableObject {
         frames.append(frame)
     }
     
-    /// Stops recording and saves the data to a file.
-    func stopRecordingAndSave() async {
+    /// Stops recording without saving. The data remains in memory for potential saving later.
+    func stopRecording() {
         guard isRecording else { return }
+        elapsedTimeTask?.cancel()
+        elapsedTimeTask = nil
         isRecording = false
-        
-        guard !frames.isEmpty else {
-            frames.removeAll()
-            return
-        }
+        hasUnsavedRecording = !frames.isEmpty
+    }
+    
+    /// Saves the current recording data to a file.
+    func saveRecording() async {
+        guard hasUnsavedRecording, !frames.isEmpty else { return }
         
         let recording = HandPoseRecording(frames: frames)
-        frames.removeAll()
         
         do {
             let encoder = JSONEncoder()
@@ -73,9 +95,27 @@ final class HandCaptureManager: ObservableObject {
             try data.write(to: url, options: .atomic)
             lastSavedURL = url
             print("Recording saved: \(url.path)")
+            
+            // Clear data after successful save
+            frames.removeAll()
+            hasUnsavedRecording = false
+            recordingElapsedTime = 0
         } catch {
             print("Failed to save hand pose recording: \(error)")
         }
+    }
+    
+    /// Discards the current unsaved recording data.
+    func discardRecording() {
+        frames.removeAll()
+        hasUnsavedRecording = false
+        recordingElapsedTime = 0
+    }
+    
+    /// Stops recording and saves the data to a file (legacy method for compatibility).
+    func stopRecordingAndSave() async {
+        stopRecording()
+        await saveRecording()
     }
     
     /// Lists all saved hand pose recordings.
