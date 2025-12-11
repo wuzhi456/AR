@@ -16,6 +16,8 @@ struct Start: View {
     @StateObject private var groupStateObserver = GroupStateObserver()
     @State private var isShowingFileImporter = false
     @State private var showingSoloOptions = false
+    @State private var showingRecordingsList = false
+    @State private var savedRecordings: [URL] = []
     
     var body: some View {
         VStack(spacing: 10) {
@@ -32,7 +34,9 @@ struct Start: View {
                 .frame(width: 340)
                 .padding(.bottom, 10)
             if gameModel.readyToStart {
-                if showingSoloOptions {
+                if showingRecordingsList {
+                    recordingsListView
+                } else if showingSoloOptions {
                     soloModeSelection
                 } else {
                     mainMenu
@@ -117,7 +121,8 @@ struct Start: View {
             }
             
             Button {
-                isShowingFileImporter = true
+                refreshRecordingsList()
+                showingRecordingsList = true
             } label: {
                 Text("Playback Mode", comment: "Mode to play with recorded hand data")
                     .frame(maxWidth: .infinity)
@@ -135,6 +140,69 @@ struct Start: View {
         .frame(width: 200)
     }
     
+    var recordingsListView: some View {
+        VStack(spacing: 12) {
+            Text("Select Recording", comment: "Title for recordings list")
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            if savedRecordings.isEmpty {
+                Text("No recordings found")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(savedRecordings, id: \.absoluteString) { url in
+                            Button {
+                                loadAndStartPlayback(from: url)
+                            } label: {
+                                Text(url.deletingPathExtension().lastPathComponent)
+                                    .frame(maxWidth: .infinity)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 150)
+            }
+            
+            Button {
+                isShowingFileImporter = true
+            } label: {
+                Text("Import from Files", comment: "Import recording from file system")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            
+            Button {
+                showingRecordingsList = false
+            } label: {
+                Text("Back", comment: "Go back to mode selection")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        }
+        .font(.system(size: 16, weight: .bold))
+        .frame(width: 250)
+    }
+    
+    private func refreshRecordingsList() {
+        guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            savedRecordings = []
+            return
+        }
+        
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            savedRecordings = files.filter { $0.lastPathComponent.hasPrefix("HandPose_") && $0.pathExtension == "json" }
+                .sorted { $0.lastPathComponent > $1.lastPathComponent }
+        } catch {
+            print("Failed to list recordings: \(error)")
+            savedRecordings = []
+        }
+    }
+    
     private func startSoloGame() {
         gameModel.isPlaying = true
         gameModel.timeLeft = GameModel.gameTime
@@ -142,16 +210,19 @@ struct Start: View {
     
     private func loadAndStartPlayback(from url: URL) {
         do {
-            guard url.startAccessingSecurityScopedResource() else {
-                print("Could not access security scoped resource")
-                return
+            // Try security-scoped access first (for files from file importer)
+            let needsSecurityScope = url.startAccessingSecurityScopedResource()
+            defer {
+                if needsSecurityScope {
+                    url.stopAccessingSecurityScopedResource()
+                }
             }
-            defer { url.stopAccessingSecurityScopedResource() }
             
             let data = try Data(contentsOf: url)
             let recording = try JSONDecoder().decode(HandPoseRecording.self, from: data)
             gameModel.playbackRecording = recording
             gameModel.soloGameMode = .playback
+            showingRecordingsList = false
             startSoloGame()
         } catch {
             print("Failed to load recording: \(error)")
