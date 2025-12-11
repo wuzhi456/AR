@@ -156,20 +156,23 @@ struct Start: View {
                     .foregroundColor(.secondary)
                     .padding()
             } else {
-                ScrollView {
-                    VStack(spacing: 8) {
-                        ForEach(savedRecordings, id: \.absoluteString) { url in
-                            Button {
-                                loadAndStartPlayback(from: url)
-                            } label: {
-                                Text(url.deletingPathExtension().lastPathComponent)
-                                    .frame(maxWidth: .infinity)
-                                    .lineLimit(1)
-                            }
+                // Show recording buttons directly without ScrollView to debug
+                VStack(spacing: 8) {
+                    ForEach(Array(savedRecordings.enumerated()), id: \.offset) { index, url in
+                        Button {
+                            print("Selected recording: \(url.lastPathComponent)")
+                            loadAndStartPlayback(from: url)
+                        } label: {
+                            Text(url.deletingPathExtension().lastPathComponent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.blue.opacity(0.2))
+                                .cornerRadius(8)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .frame(maxHeight: 150)
+                .frame(maxHeight: 200)
             }
             
             Button {
@@ -189,10 +192,12 @@ struct Start: View {
             .buttonStyle(.bordered)
         }
         .font(.system(size: 16, weight: .bold))
-        .frame(width: 250)
+        .frame(width: 280)
         .onAppear {
             // Refresh list when view appears to ensure state is current
+            print("recordingsListView onAppear - current count: \(savedRecordings.count)")
             refreshRecordingsList()
+            print("recordingsListView onAppear - after refresh count: \(savedRecordings.count)")
         }
     }
     
