@@ -7,8 +7,9 @@ import UniformTypeIdentifiers
 
 struct ImmersiveView: View {
     @Environment(AppModel.self) var appModel
+    @Environment(HandCaptureManager.self) var captureManager // Use Environment
     @StateObject private var handTrackingModel = HandTrackingModel()
-    @StateObject private var captureManager = HandCaptureManager()
+    // @StateObject private var captureManager = HandCaptureManager() // Removed local instance
     @State private var isShowingFileImporter = false
 
     var body: some View {
@@ -45,6 +46,19 @@ struct ImmersiveView: View {
                                             jointColor: .magenta)
 
                     captureManager.captureFrame(leftJoints: leftJoints, rightJoints: rightJoints)
+                    
+                    // Update Live HVHandInfo for Modes 2 & 3
+                    if let leftAnchor = handTrackingModel.latestHands.left, leftAnchor.isTracked {
+                        captureManager.latestLeftHand = HVHandInfo(handAnchor: leftAnchor)
+                    } else {
+                        captureManager.latestLeftHand = nil
+                    }
+                    
+                    if let rightAnchor = handTrackingModel.latestHands.right, rightAnchor.isTracked {
+                        captureManager.latestRightHand = HVHandInfo(handAnchor: rightAnchor)
+                    } else {
+                        captureManager.latestRightHand = nil
+                    }
                 }
             }
             .task { await handTrackingModel.start() }
