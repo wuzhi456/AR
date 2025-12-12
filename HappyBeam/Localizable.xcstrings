@@ -967,8 +967,11 @@
         }
       }
     },
+    "ARCOACH DEMO" : {
+
+    },
     "Back" : {
-      "comment" : "Go back to main menu\nGo back to mode selection",
+      "comment" : "Go back to main menu",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1079,6 +1082,7 @@
     },
     "Cheer up grumpy clouds by shining a happy beam with your heart." : {
       "comment" : "This text explains the purpose of the game.",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1260,6 +1264,12 @@
           }
         }
       }
+    },
+    "Delete" : {
+
+    },
+    "Delete this recording?" : {
+
     },
     "Discard" : {
 
@@ -1588,9 +1598,6 @@
     "No recordings found" : {
 
     },
-    "Normal Play" : {
-      "comment" : "Normal gameplay mode"
-    },
     "Pause" : {
       "comment" : "Button to pause the game",
       "localizations" : {
@@ -1736,6 +1743,7 @@
     },
     "Play Solo" : {
       "comment" : "A game mode where the player plays in single-player mode.",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1805,9 +1813,6 @@
         }
       }
     },
-    "Play with Friends (Disabled)" : {
-      "comment" : "A game mode where the player plays in multi-player mode."
-    },
     "Playback Mode" : {
       "comment" : "Mode to play with recorded hand data"
     },
@@ -1860,6 +1865,9 @@
     },
     "Recording Mode" : {
       "comment" : "Mode to record hand movements"
+    },
+    "Replay" : {
+
     },
     "Save" : {
 
@@ -1939,12 +1947,6 @@
     },
     "Select Coach File" : {
 
-    },
-    "Select Game Mode" : {
-      "comment" : "Title for solo mode selection"
-    },
-    "Select Recording" : {
-      "comment" : "Title for recordings list"
     },
     "Select User File" : {
 

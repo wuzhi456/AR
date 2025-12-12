@@ -15,29 +15,18 @@ struct Start: View {
     
     @StateObject private var groupStateObserver = GroupStateObserver()
     @State private var isShowingFileImporter = false
-    @State private var showingSoloOptions = false
     @State private var showingRecordingsList = false
     @State private var savedRecordings: [URL] = []
+    @State private var recordingPendingDeletion: URL?
     
     var body: some View {
         VStack(spacing: 10) {
             Spacer()
-            Image("splashScreen")
-                .resizable()
-                .frame(width: 337, height: 211)
-                .accessibilityHidden(true)
-            Text("Happy Beam", comment: "The name of the game.")
+            Text("ARCOACH DEMO")
                 .font(.system(size: 30, weight: .bold))
-            Text("Cheer up grumpy clouds by shining a happy beam with your heart.", comment: "This text explains the purpose of the game.")
-                .multilineTextAlignment(.center)
-                .font(.headline)
-                .frame(width: 340)
-                .padding(.bottom, 10)
             if gameModel.readyToStart {
                 if showingRecordingsList {
                     recordingsListView
-                } else if showingSoloOptions {
-                    soloModeSelection
                 } else {
                     mainMenu
                 }
@@ -71,31 +60,20 @@ struct Start: View {
     var mainMenu: some View {
         Group {
             Button {
-                showingSoloOptions = true
+                gameModel.soloGameMode = .recording
+                startSoloGame()
             } label: {
-                Text("Play Solo", comment: "A game mode where the player plays in single-player mode.")
+                Text("Recording Mode", comment: "Mode to record hand movements")
                     .frame(maxWidth: .infinity)
             }
-            .disabled(!gameModel.readyToStart)
-            
+
             Button {
-                print("Starting as SharePlay", groupStateObserver.isEligibleForGroupSession)
-                
-                /* SharePlay disabled
-                Task {
-                    do {
-                        try await startSession()
-                    } catch {
-                        print("SharePlay session failure", error)
-                    }
-                }
-                */
+                refreshRecordingsList()
+                showingRecordingsList = true
             } label: {
-                Text("Play with Friends (Disabled)", comment: "A game mode where the player plays in multi-player mode.")
+                Text("Playback Mode", comment: "Mode to play with recorded hand data")
                     .frame(maxWidth: .infinity)
             }
-            .disabled(true) // Always disabled for Personal Team
-            // .disabled(!groupStateObserver.isEligibleForGroupSession)
             
             Button {
                 gameModel.isCalligraphyComparisonMode = true
@@ -108,53 +86,28 @@ struct Start: View {
         .frame(width: 200)
     }
     
-    var soloModeSelection: some View {
-        VStack(spacing: 12) {
-            Text("Select Game Mode", comment: "Title for solo mode selection")
-                .font(.headline)
-                .padding(.bottom, 5)
-            
-            Button {
-                gameModel.soloGameMode = .normal
-                startSoloGame()
-            } label: {
-                Text("Normal Play", comment: "Normal gameplay mode")
-                    .frame(maxWidth: .infinity)
-            }
-            
-            Button {
-                gameModel.soloGameMode = .recording
-                startSoloGame()
-            } label: {
-                Text("Recording Mode", comment: "Mode to record hand movements")
-                    .frame(maxWidth: .infinity)
-            }
-            
-            Button {
-                refreshRecordingsList()
-                showingRecordingsList = true
-            } label: {
-                Text("Playback Mode", comment: "Mode to play with recorded hand data")
-                    .frame(maxWidth: .infinity)
-            }
-            
-            Button {
-                showingSoloOptions = false
-            } label: {
-                Text("Back", comment: "Go back to main menu")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-        }
-        .font(.system(size: 16, weight: .bold))
-        .frame(width: 200)
-    }
-    
     var recordingsListView: some View {
         VStack(spacing: 12) {
-            Text("Select Recording", comment: "Title for recordings list")
-                .font(.headline)
-                .padding(.bottom, 5)
+            HStack {
+                Button {
+                    showingRecordingsList = false
+                } label: {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+
+                Text("Replay")
+                    .font(.headline)
+
+                Spacer()
+
+                // Keep the title visually centered.
+                Color.clear
+                    .frame(width: 70, height: 1)
+            }
+            .padding(.bottom, 5)
             
             // Debug: show count
             Text("Found \(savedRecordings.count) recordings")
@@ -170,14 +123,23 @@ struct Start: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(Array(savedRecordings.enumerated()), id: \.offset) { index, url in
-                            Button(action: {
-                                print("Button tapped for: \(url.lastPathComponent)")
-                                loadAndStartPlayback(from: url)
-                            }) {
-                                Text(url.deletingPathExtension().lastPathComponent)
-                                    .frame(maxWidth: .infinity)
+                            HStack(spacing: 8) {
+                                Button(action: {
+                                    print("Button tapped for: \(url.lastPathComponent)")
+                                    loadAndStartPlayback(from: url)
+                                }) {
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button(role: .destructive) {
+                                    recordingPendingDeletion = url
+                                } label: {
+                                    Text("Delete")
+                                }
+                                .buttonStyle(.bordered)
                             }
-                            .buttonStyle(.bordered)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -193,13 +155,6 @@ struct Start: View {
             }
             .buttonStyle(.bordered)
             
-            Button(action: {
-                showingRecordingsList = false
-            }) {
-                Text("Back", comment: "Go back to mode selection")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
         }
         .font(.system(size: 16, weight: .bold))
         .frame(width: 280)
@@ -208,6 +163,29 @@ struct Start: View {
             print("recordingsListView onAppear - current count: \(savedRecordings.count)")
             refreshRecordingsList()
             print("recordingsListView onAppear - after refresh count: \(savedRecordings.count)")
+        }
+        .confirmationDialog(
+            "Delete this recording?",
+            isPresented: Binding(
+                get: { recordingPendingDeletion != nil },
+                set: { if !$0 { recordingPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let url = recordingPendingDeletion {
+                    deleteRecordingFile(at: url)
+                }
+                recordingPendingDeletion = nil
+            }
+
+            Button("Cancel", role: .cancel) {
+                recordingPendingDeletion = nil
+            }
+        } message: {
+            if let url = recordingPendingDeletion {
+                Text(url.lastPathComponent)
+            }
         }
     }
     
@@ -272,6 +250,16 @@ struct Start: View {
             startSoloGame()
         } catch {
             print("Failed to load recording: \(error)")
+        }
+    }
+
+    private func deleteRecordingFile(at url: URL) {
+        do {
+            // For files created in-app (Documents), this should succeed without security-scoped access.
+            try FileManager.default.removeItem(at: url)
+            refreshRecordingsList()
+        } catch {
+            print("Failed to delete recording file: \(error)")
         }
     }
 }
