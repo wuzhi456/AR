@@ -25,11 +25,11 @@ struct ContentView: View {
                 
                 // 模式一：基础录制与回放 (复用 ImmersiveView 的功能)
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("模式一：基础录制与回放")
-                        .font(.headline)
-                    Text("点击上方 'Show Immersive Space' 进入沉浸式空间，即可进行手势录制与回放。")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text("Mode 1: Basic Recording & Playback")
+                            .font(.headline)
+                        Text("Tap 'Show Immersive Space' above to enter the immersive space for gesture recording and playback.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                 }
                 .padding()
                 .background(Color.gray.opacity(0.1))
@@ -39,7 +39,7 @@ struct ContentView: View {
                 NavigationLink(destination: CalligraphyComparisonView()) {
                     HStack {
                         Image(systemName: "pencil.and.outline")
-                        Text("模式二：书法过程比对")
+                        Text("Mode 2: Calligraphy Comparison")
                     }
                     .padding()
                     .frame(maxWidth: 300)
@@ -52,7 +52,7 @@ struct ContentView: View {
                 NavigationLink(destination: GestureRecognitionView()) {
                     HStack {
                         Image(systemName: "hand.wave")
-                        Text("模式三：手势识别挑战")
+                        Text("Mode 3: Gesture Recognition Challenge")
                     }
                     .padding()
                     .frame(maxWidth: 300)

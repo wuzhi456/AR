@@ -2,6 +2,8 @@ import SwiftUI
 import RealityKit
 
 // 模式一 UI：书法比对视图
+=======
+// Mode 1 UI: Calligraphy Comparison View
 struct CalligraphyComparisonView: View {
     @Environment(HandCaptureManager.self) var captureManager // Use Shared Manager
     @State private var isRecording = false
@@ -16,15 +18,17 @@ struct CalligraphyComparisonView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("书法过程比对")
+
+            Text("Calligraphy Comparison")
                 .font(.title)
             
             HStack {
                 Button(action: {
-                    // 模拟加载 Coach 数据
+
+                    // Simulate loading Coach data
                     loadCoachData()
                 }) {
-                    Text("加载范例 (Coach)")
+                    Text("Load Example (Coach)")
                         .padding()
                         .background(Color.blue)
                         .foregroundColor(.white)
@@ -34,7 +38,8 @@ struct CalligraphyComparisonView: View {
                 Button(action: {
                     toggleRecording()
                 }) {
-                    Text(isRecording ? "停止录制" : "开始录制 (User)")
+
+                    Text(isRecording ? "Stop Recording" : "Start Recording (User)")
                         .padding()
                         .background(isRecording ? Color.red : Color.green)
                         .foregroundColor(.white)
@@ -44,23 +49,25 @@ struct CalligraphyComparisonView: View {
             
             if let result = comparisonResult {
                 VStack {
-                    Text("比对结果")
+
+                    Text("Comparison Result")
                         .font(.headline)
-                    Text("相似度得分: \(String(format: "%.2f", result.normalizedScore * 100))%")
+                    Text("Similarity Score: \(String(format: "%.2f", result.normalizedScore * 100))%")
                         .font(.system(size: 40, weight: .bold))
                         .foregroundColor(scoreColor(result.normalizedScore))
                     
-                    Text("DTW 距离: \(String(format: "%.2f", result.distance))")
+                    Text("DTW Distance: \(String(format: "%.2f", result.distance))")
                         .font(.caption)
                 }
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(15)
             } else if isRecording {
-                Text("正在录制... 帧数: \(recordedFrames.count)")
+
+                Text("Recording... Frames: \(recordedFrames.count)")
                     .foregroundColor(.red)
             } else {
-                Text("请加载范例并录制您的动作进行比对")
+                Text("Please load an example and record your performance for comparison")
                     .foregroundColor(.secondary)
             }
             
