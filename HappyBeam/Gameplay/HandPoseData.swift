@@ -67,7 +67,7 @@ func extractJointPoses(from anchor: HandAnchor?) -> [HandJointPose] {
     
     return HandSkeleton.JointName.allCases.compactMap { jointName in
         let joint = skeleton.joint(jointName)
-        guard joint.isTracked else { return nil }
+//        guard joint.isTracked else { return nil }
         let worldTransform = matrix_multiply(anchor.originFromAnchorTransform, joint.anchorFromJointTransform)
         return HandJointPose(name: String(describing: jointName), transform: worldTransform)
     }

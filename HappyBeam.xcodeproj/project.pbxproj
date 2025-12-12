@@ -11,6 +11,9 @@
 		264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F12EEAA816002E2933 /* HandCaptureManager.swift */; };
 		264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F22EEAA816002E2933 /* HandPoseData.swift */; };
 		264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F32EEAA816002E2933 /* HandVisualization.swift */; };
+
+		2667A1382EEC06380081B20F /* CalligraphyComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */; };
+		2667A13A2EEC06570081B20F /* CalligraphyComparisonViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2667A1392EEC06570081B20F /* CalligraphyComparisonViewModel.swift */; };
 		321A0C13291C02B80042A987 /* HappyBeamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321A0C12291C02B80042A987 /* HappyBeamApp.swift */; };
 		321A0C19291C02B90042A987 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C18291C02B90042A987 /* Assets.xcassets */; };
 		321A0C1C291C02B90042A987 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C1B291C02B90042A987 /* Preview Assets.xcassets */; };
@@ -50,6 +53,9 @@
 		264737F12EEAA816002E2933 /* HandCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCaptureManager.swift; sourceTree = "<group>"; };
 		264737F22EEAA816002E2933 /* HandPoseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandPoseData.swift; sourceTree = "<group>"; };
 		264737F32EEAA816002E2933 /* HandVisualization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandVisualization.swift; sourceTree = "<group>"; };
+
+		2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalligraphyComparisonView.swift; sourceTree = "<group>"; };
+		2667A1392EEC06570081B20F /* CalligraphyComparisonViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalligraphyComparisonViewModel.swift; sourceTree = "<group>"; };
 		321A0C0B291C02B80042A987 /* HappyBeam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBeam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		321A0C12291C02B80042A987 /* HappyBeamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HappyBeamApp.swift; sourceTree = "<group>"; };
 		321A0C18291C02B90042A987 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -178,8 +184,10 @@
 		324F3043298AC8B900200F22 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+
 				32372A622991920F00F10755 /* HappyBeam.swift */,
 				324F3044298ACB0B00200F22 /* Start.swift */,
+				2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */,
 				324F3046298AE68600200F22 /* SoloPlay.swift */,
 				324F3048298AEAF800200F22 /* SoloScore.swift */,
 				32665A96299AB02200EBA549 /* Lobby.swift */,
@@ -194,6 +202,7 @@
 			children = (
 				264737F12EEAA816002E2933 /* HandCaptureManager.swift */,
 				264737F22EEAA816002E2933 /* HandPoseData.swift */,
+				2667A1392EEC06570081B20F /* CalligraphyComparisonViewModel.swift */,
 				264737F32EEAA816002E2933 /* HandVisualization.swift */,
 				32791FB02A30CF24000290A2 /* BeamCollisions.swift */,
 				32665A94299AAFE200EBA549 /* Clouds.swift */,
@@ -327,11 +336,14 @@
 				321A0C13291C02B80042A987 /* HappyBeamApp.swift in Sources */,
 				322C5443291D892800C32983 /* HeartGestureModel.swift in Sources */,
 				32372A652991951F00F10755 /* Players.swift in Sources */,
+				2667A13A2EEC06570081B20F /* CalligraphyComparisonViewModel.swift in Sources */,
+				2667A1382EEC06380081B20F /* CalligraphyComparisonView.swift in Sources */,
 				32665A95299AAFE200EBA549 /* Clouds.swift in Sources */,
 				264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */,
 				264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */,
 				264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */,
 				324F304D298AF28C00200F22 /* MultiScore.swift in Sources */,
+
 				324F304B298AED7300200F22 /* MultiPlay.swift in Sources */,
 				324F3047298AE68600200F22 /* SoloPlay.swift in Sources */,
 				324EA74B297B2286005A6B3B /* Multiplayer.swift in Sources */,
@@ -473,6 +485,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 69D019E13699007BC04C1F1F /* SampleCode.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HappyBeam/HappyBeam.entitlements;
@@ -509,6 +522,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 69D019E13699007BC04C1F1F /* SampleCode.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HappyBeam/HappyBeam.entitlements;

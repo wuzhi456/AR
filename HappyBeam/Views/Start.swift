@@ -18,8 +18,6 @@ struct Start: View {
     @State private var showingSoloOptions = false
     @State private var showingRecordingsList = false
     @State private var savedRecordings: [URL] = []
-    @State private var recordingToDelete: URL? = nil
-    @State private var showingDeleteConfirmation = false
     
     var body: some View {
         VStack(spacing: 10) {
@@ -83,6 +81,7 @@ struct Start: View {
             Button {
                 print("Starting as SharePlay", groupStateObserver.isEligibleForGroupSession)
                 
+                /* SharePlay disabled
                 Task {
                     do {
                         try await startSession()
@@ -90,11 +89,20 @@ struct Start: View {
                         print("SharePlay session failure", error)
                     }
                 }
+                */
             } label: {
-                Text("Play with Friends", comment: "A game mode where the player plays in multi-player mode.")
+                Text("Play with Friends (Disabled)", comment: "A game mode where the player plays in multi-player mode.")
                     .frame(maxWidth: .infinity)
             }
-            .disabled(!groupStateObserver.isEligibleForGroupSession)
+            .disabled(true) // Always disabled for Personal Team
+            // .disabled(!groupStateObserver.isEligibleForGroupSession)
+            
+            Button {
+                gameModel.isCalligraphyComparisonMode = true
+            } label: {
+                Text("Calligraphy Comparison")
+                    .frame(maxWidth: .infinity)
+            }
         }
         .font(.system(size: 16, weight: .bold))
         .frame(width: 200)
@@ -162,25 +170,14 @@ struct Start: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(Array(savedRecordings.enumerated()), id: \.offset) { index, url in
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    print("Button tapped for: \(url.lastPathComponent)")
-                                    loadAndStartPlayback(from: url)
-                                }) {
-                                    Text(url.deletingPathExtension().lastPathComponent)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                
-                                Button(action: {
-                                    recordingToDelete = url
-                                    showingDeleteConfirmation = true
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.bordered)
+                            Button(action: {
+                                print("Button tapped for: \(url.lastPathComponent)")
+                                loadAndStartPlayback(from: url)
+                            }) {
+                                Text(url.deletingPathExtension().lastPathComponent)
+                                    .frame(maxWidth: .infinity)
                             }
+                            .buttonStyle(.bordered)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -205,29 +202,12 @@ struct Start: View {
             .buttonStyle(.bordered)
         }
         .font(.system(size: 16, weight: .bold))
-        .frame(width: 320)
+        .frame(width: 280)
         .onAppear {
             // Refresh list when view appears to ensure state is current
             print("recordingsListView onAppear - current count: \(savedRecordings.count)")
             refreshRecordingsList()
             print("recordingsListView onAppear - after refresh count: \(savedRecordings.count)")
-        }
-        .alert("Delete Recording", isPresented: $showingDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {
-                recordingToDelete = nil
-            }
-            Button("Delete", role: .destructive) {
-                if let url = recordingToDelete {
-                    deleteRecording(url: url)
-                }
-                recordingToDelete = nil
-            }
-        } message: {
-            if let url = recordingToDelete {
-                Text("Are you sure you want to delete \(url.deletingPathExtension().lastPathComponent)?")
-            } else {
-                Text("Are you sure you want to delete this recording?")
-            }
         }
     }
     
@@ -292,17 +272,6 @@ struct Start: View {
             startSoloGame()
         } catch {
             print("Failed to load recording: \(error)")
-        }
-    }
-    
-    private func deleteRecording(url: URL) {
-        do {
-            try FileManager.default.removeItem(at: url)
-            print("Deleted recording: \(url.lastPathComponent)")
-            // Refresh the list after deletion
-            refreshRecordingsList()
-        } catch {
-            print("Failed to delete recording: \(error)")
         }
     }
 }

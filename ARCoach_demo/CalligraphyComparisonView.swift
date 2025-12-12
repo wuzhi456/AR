@@ -1,6 +1,8 @@
 import SwiftUI
 import RealityKit
 
+// 模式一 UI：书法比对视图
+=======
 // Mode 1 UI: Calligraphy Comparison View
 struct CalligraphyComparisonView: View {
     @Environment(HandCaptureManager.self) var captureManager // Use Shared Manager
@@ -16,11 +18,13 @@ struct CalligraphyComparisonView: View {
     
     var body: some View {
         VStack(spacing: 20) {
+
             Text("Calligraphy Comparison")
                 .font(.title)
             
             HStack {
                 Button(action: {
+
                     // Simulate loading Coach data
                     loadCoachData()
                 }) {
@@ -34,6 +38,7 @@ struct CalligraphyComparisonView: View {
                 Button(action: {
                     toggleRecording()
                 }) {
+
                     Text(isRecording ? "Stop Recording" : "Start Recording (User)")
                         .padding()
                         .background(isRecording ? Color.red : Color.green)
@@ -44,6 +49,7 @@ struct CalligraphyComparisonView: View {
             
             if let result = comparisonResult {
                 VStack {
+
                     Text("Comparison Result")
                         .font(.headline)
                     Text("Similarity Score: \(String(format: "%.2f", result.normalizedScore * 100))%")
@@ -57,6 +63,7 @@ struct CalligraphyComparisonView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(15)
             } else if isRecording {
+
                 Text("Recording... Frames: \(recordedFrames.count)")
                     .foregroundColor(.red)
             } else {
