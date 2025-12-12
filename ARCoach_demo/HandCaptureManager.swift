@@ -64,9 +64,9 @@ final class HandCaptureManager: ObservableObject {
             let url = directory.appendingPathComponent(filename)
             try data.write(to: url, options: .atomic)
             lastSavedURL = url
-            print("录制已保存: \(url.path)")
+                print("Recording saved: \(url.path)")
         } catch {
-            print("保存手势失败: \(error)")
+                print("Failed to save handpose: \(error)")
         }
     }
 

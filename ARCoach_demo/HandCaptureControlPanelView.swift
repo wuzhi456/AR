@@ -10,12 +10,12 @@ struct HandCaptureControlPanelView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Button(captureManager.isRecording ? "停止录制" : "开始录制") {
+            Button(captureManager.isRecording ? "Stop Recording" : "Start Recording") {
                 toggleRecording()
             }
             .buttonStyle(.borderedProminent)
 
-            Button(captureManager.isPlayingBack ? "停止回溯" : "回溯") {
+            Button(captureManager.isPlayingBack ? "Stop Playback" : "Playback") {
                 togglePlayback()
             }
             .buttonStyle(.bordered)
@@ -27,7 +27,7 @@ struct HandCaptureControlPanelView: View {
                       allowedContentTypes: [.json],
                       allowsMultipleSelection: false) { result in
             switch result {
-            case .success(let urls):
+                case .success(let urls):
                 guard let url = urls.first else {
                     print("No file selected")
                     return
@@ -39,11 +39,11 @@ struct HandCaptureControlPanelView: View {
                         await captureManager.beginPlayback(with: sequence)
                     } catch {
                         // TODO: Surface error to user
-                        print("加载回放文件失败: \(error)")
+                        print("Failed to load playback file: \(error)")
                     }
                 }
             case .failure(let error):
-                print("文件选择失败: \(error)")
+                print("File selection failed: \(error)")
             }
         }
     }
