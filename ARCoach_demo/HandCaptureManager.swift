@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import QuartzCore
+import ARKit // Added for HVHandInfo
 
 @MainActor
 final class HandCaptureManager: ObservableObject {
@@ -8,6 +9,10 @@ final class HandCaptureManager: ObservableObject {
     @Published private(set) var isPlayingBack = false
     @Published private(set) var currentPlaybackFrame: HandPoseSample?
     @Published private(set) var lastSavedURL: URL?
+    
+    // Live Hand Data for Modes 2 & 3
+    @Published var latestLeftHand: HVHandInfo?
+    @Published var latestRightHand: HVHandInfo?
 
     private var samples: [HandPoseSample] = []
     private var recordingStart: TimeInterval = 0
