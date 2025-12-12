@@ -24,6 +24,8 @@ class CalligraphyComparisonViewModel: ObservableObject {
     @Published var availableRecordings: [URL] = []
     @Published var coachRecording: HandPoseRecording?
     @Published var userRecording: HandPoseRecording?
+    @Published var coachRecordingName: String?
+    @Published var userRecordingName: String?
     @Published var comparisonMode: HandComparisonMode = .rightToRight
     
     @Published var isComparing = false
@@ -53,6 +55,7 @@ class CalligraphyComparisonViewModel: ObservableObject {
     func loadCoachRecording(from url: URL) {
         do {
             coachRecording = try captureManager.loadRecording(from: url)
+            coachRecordingName = url.lastPathComponent
             coachTrimRange = 0.0...1.0
         } catch {
             print("Error loading coach recording: \(error)")
@@ -62,6 +65,7 @@ class CalligraphyComparisonViewModel: ObservableObject {
     func loadUserRecording(from url: URL) {
         do {
             userRecording = try captureManager.loadRecording(from: url)
+            userRecordingName = url.lastPathComponent
             userTrimRange = 0.0...1.0
         } catch {
             print("Error loading user recording: \(error)")
@@ -210,17 +214,68 @@ class CalligraphyComparisonViewModel: ObservableObject {
         }
     }
     
+    func rewind(seconds: Double) {
+        guard let coach = coachRecording else { return }
+        guard let first = coach.frames.first, let last = coach.frames.last else { return }
+        
+        let totalDuration = last.timestamp - first.timestamp
+        let currentSeconds = totalDuration * progress
+        let newSeconds = max(0, currentSeconds - seconds)
+        
+        progress = newSeconds / totalDuration
+        
+        // Update frames immediately
+        if let user = userRecording {
+            self.currentCoachFrame = sampleFrame(recording: coach, at: progress, range: coachTrimRange)
+            self.currentUserFrame = sampleFrame(recording: user, at: progress, range: userTrimRange)
+        }
+    }
+    
+    func seek(to newProgress: Double) {
+        progress = newProgress
+        if let coach = coachRecording, let user = userRecording {
+            self.currentCoachFrame = sampleFrame(recording: coach, at: progress, range: coachTrimRange)
+            self.currentUserFrame = sampleFrame(recording: user, at: progress, range: userTrimRange)
+        }
+    }
+    
     func startPlayback() {
         guard let coach = coachRecording, let user = userRecording else { return }
         isPlaying = true
         
         playbackTask = Task {
-            let duration = 5.0 // Play over 5 seconds or use max duration
-            let startTime = CACurrentMediaTime()
+            // Calculate duration based on the trimmed range of the coach recording
+            // The user wants the playback duration to be unified.
+            // We will use the coach's trimmed duration as the master duration.
+            
+            guard let cFirst = coach.frames.first, let cLast = coach.frames.last else { return }
+            let fullDuration = cLast.timestamp - cFirst.timestamp
+            let trimmedDuration = fullDuration * (coachTrimRange.upperBound - coachTrimRange.lowerBound)
+            
+            // If duration is too short, default to something reasonable or just play fast
+            let duration = max(0.1, trimmedDuration)
+            
+            let startTime = CACurrentMediaTime() - (duration * progress)
             
             while isPlaying {
                 let elapsed = CACurrentMediaTime() - startTime
-                let t = (elapsed / duration).truncatingRemainder(dividingBy: 1.0)
+                
+                if elapsed >= duration {
+                    // Loop or stop? Let's loop for now as it's common in analysis
+                    // Or stop if it reaches the end.
+                    // Let's loop.
+                    // startTime = CACurrentMediaTime()
+                    // continue
+                    
+                    // Actually, let's just stop at the end like a video player
+                    await MainActor.run {
+                        self.isPlaying = false
+                        self.progress = 1.0
+                    }
+                    break
+                }
+                
+                let t = elapsed / duration
                 
                 await MainActor.run {
                     self.progress = t

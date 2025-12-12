@@ -36,6 +36,9 @@
         }
       }
     },
+    "/ %@" : {
+
+    },
     "%@ (you)" : {
       "comment" : "The player's name in the game followed by the word you to indicate that fact. The name can be anything they chose.",
       "localizations" : {
@@ -216,6 +219,9 @@
           }
         }
       }
+    },
+    "%@s" : {
+
     },
     "%lld clouds above and behind you" : {
       "comment" : "Describes the position of clouds in the 3D scene.",
@@ -924,6 +930,9 @@
         }
       }
     },
+    "%lld%%" : {
+
+    },
     "Altus" : {
       "localizations" : {
         "de" : {
@@ -1027,6 +1036,12 @@
           }
         }
       }
+    },
+    "Calligraphy Comparison" : {
+
+    },
+    "Cancel" : {
+
     },
     "Casting beam" : {
       "localizations" : {
@@ -1200,6 +1215,18 @@
         }
       }
     },
+    "Coach" : {
+
+    },
+    "Coach Recording" : {
+
+    },
+    "Compare" : {
+
+    },
+    "Comparison Mode" : {
+
+    },
     "Cumulus" : {
       "localizations" : {
         "de" : {
@@ -1233,6 +1260,12 @@
           }
         }
       }
+    },
+    "Discard" : {
+
+    },
+    "Elapsed Time" : {
+
     },
     "Found %lld recordings" : {
 
@@ -1549,6 +1582,9 @@
         }
       }
     },
+    "No file selected" : {
+
+    },
     "No recordings found" : {
 
     },
@@ -1589,6 +1625,9 @@
           }
         }
       }
+    },
+    "Pause Playback" : {
+
     },
     "Play" : {
       "comment" : "Button to play the game",
@@ -1732,6 +1771,7 @@
     },
     "Play with Friends" : {
       "comment" : "A game mode where the player plays in multi-player mode.",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1765,11 +1805,17 @@
         }
       }
     },
-    "Playback" : {
-
+    "Play with Friends (Disabled)" : {
+      "comment" : "A game mode where the player plays in multi-player mode."
     },
     "Playback Mode" : {
       "comment" : "Mode to play with recorded hand data"
+    },
+    "Playback Time" : {
+
+    },
+    "playing" : {
+
     },
     "Project happy hearts to cheer up grumpy clouds." : {
       "comment" : "Subtitle text for the SharePlay join dialog.",
@@ -1806,11 +1852,20 @@
         }
       }
     },
-    "Recording" : {
+    "ready" : {
+
+    },
+    "recording" : {
 
     },
     "Recording Mode" : {
       "comment" : "Mode to record hand movements"
+    },
+    "Save" : {
+
+    },
+    "Save Recording" : {
+
     },
     "score" : {
       "comment" : "A string that indicates the number immediately above is the player's current score in the game.",
@@ -1882,11 +1937,29 @@
         }
       }
     },
+    "Select Coach File" : {
+
+    },
     "Select Game Mode" : {
       "comment" : "Title for solo mode selection"
     },
     "Select Recording" : {
       "comment" : "Title for recordings list"
+    },
+    "Select User File" : {
+
+    },
+    "Similarity Score" : {
+
+    },
+    "Start Playback" : {
+
+    },
+    "Start Recording" : {
+
+    },
+    "Stop" : {
+
     },
     "Stop music" : {
       "comment" : "Button to stop music",
@@ -1923,6 +1996,15 @@
         }
       }
     },
+    "Stop Recording" : {
+
+    },
+    "Trim Recordings" : {
+
+    },
+    "Unsaved Recording" : {
+
+    },
     "Use a pinch gesture or a compatible device." : {
       "comment" : "A way to control the game.",
       "localizations" : {
@@ -1957,6 +2039,12 @@
           }
         }
       }
+    },
+    "User" : {
+
+    },
+    "User Recording" : {
+
     },
     "Waiting for all players to choose." : {
       "comment" : "Informative message about why the multi-player game has not yet started.",
@@ -2027,6 +2115,9 @@
           }
         }
       }
+    },
+    "You have unsaved recording data. What would you like to do?" : {
+
     },
     "You won!" : {
       "comment" : "This is an indication that the player has won the game.",

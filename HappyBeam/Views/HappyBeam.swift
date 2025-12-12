@@ -28,6 +28,8 @@ struct HappyBeam: View {
                 switch gameState {
                 case .start:
                     Start()
+                case .calligraphyComparison:
+                    CalligraphyComparisonView()
                 case .soloPlay:
                     SoloPlay()
                 case .lobby:
@@ -99,6 +101,7 @@ struct HappyBeam: View {
         }
         .task {
             sessionInfo = .init()
+            /* SharePlay disabled
             for await newSession in HeartProjection.sessions() {
                 print("New GroupActivities session", newSession)
                 
@@ -227,6 +230,7 @@ struct HappyBeam: View {
                     }
                 }
             }
+            */
         }
     }
 }
@@ -244,6 +248,10 @@ extension UUID {
 
 enum GameScreen {
     static func from(state: GameModel) -> Self {
+        if state.isCalligraphyComparisonMode {
+            return .calligraphyComparison
+        }
+        
         if !state.isPlaying && !state.isSharePlaying {
             return .start
         } else if state.isPlaying {
@@ -271,10 +279,10 @@ enum GameScreen {
     }
     
     case start
+    case calligraphyComparison
     case soloPlay
     case soloScore
     case lobby
     case multiPlay
     case multiScore
 }
-

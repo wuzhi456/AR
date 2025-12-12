@@ -30,6 +30,9 @@ class GameModel {
     /// The recording to play back in playback mode.
     var playbackRecording: HandPoseRecording?
     
+    /// Whether the user is in Calligraphy Comparison mode.
+    var isCalligraphyComparisonMode = false
+    
     // MARK: - Recording Mode State
     
     /// Whether the user is actively recording (user-controlled in recording mode).
