@@ -14,9 +14,16 @@ struct Start: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     
     @StateObject private var groupStateObserver = GroupStateObserver()
+    @StateObject private var practiceCaptureManager = HandCaptureManager()
     @State private var isShowingFileImporter = false
+    @State private var isShowingPracticeImporter = false
     @State private var showingRecordingsList = false
+    @State private var showingPracticeSetup = false
     @State private var savedRecordings: [URL] = []
+    @State private var practiceRecordings: [URL] = []
+    @State private var selectedPracticeURL: URL?
+    @State private var practiceRecordingName: String?
+    @State private var selectedPracticeHand: PracticeHand = .right
     @State private var recordingPendingDeletion: URL?
     
     var body: some View {
@@ -27,6 +34,8 @@ struct Start: View {
             if gameModel.readyToStart {
                 if showingRecordingsList {
                     recordingsListView
+                } else if showingPracticeSetup {
+                    practiceSetupView
                 } else {
                     mainMenu
                 }
@@ -55,6 +64,17 @@ struct Start: View {
                 print("File selection failed: \(error)")
             }
         }
+        .fileImporter(isPresented: $isShowingPracticeImporter,
+                      allowedContentTypes: [.json],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                loadPracticeRecording(from: url)
+            case .failure(let error):
+                print("Practice file selection failed: \(error)")
+            }
+        }
     }
     
     var mainMenu: some View {
@@ -81,9 +101,102 @@ struct Start: View {
                 Text("Calligraphy Comparison")
                     .frame(maxWidth: .infinity)
             }
+            
+            Button {
+                showingRecordingsList = false
+                refreshPracticeRecordings()
+                showingPracticeSetup = true
+            } label: {
+                Text("Practice Mode")
+                    .frame(maxWidth: .infinity)
+            }
         }
         .font(.system(size: 16, weight: .bold))
         .frame(width: 200)
+    }
+
+    var practiceSetupView: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Button {
+                    showingPracticeSetup = false
+                } label: {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .buttonStyle(.bordered)
+                
+                Spacer()
+                Text("Practice Mode")
+                    .font(.headline)
+                Spacer()
+                Color.clear.frame(width: 70, height: 1)
+            }
+            
+            VStack(spacing: 10) {
+                Text("Select Coach JSON")
+                    .font(.title3)
+                Menu {
+                    ForEach(practiceRecordings, id: \.self) { url in
+                        Button(url.lastPathComponent) {
+                            loadPracticeRecording(from: url)
+                        }
+                    }
+                } label: {
+                    Label("Choose File", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                
+                if let name = practiceRecordingName {
+                    Text(name)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("No file selected")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Button("Import from Files") {
+                    isShowingPracticeImporter = true
+                }
+                .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: 320)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Practice Hand")
+                    .font(.headline)
+                Picker("Practice Hand", selection: $selectedPracticeHand) {
+                    ForEach(PracticeHand.allCases) { hand in
+                        Text(hand.displayName).tag(hand)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            .frame(maxWidth: 320)
+            
+            Button {
+                guard gameModel.practiceRecording != nil else { return }
+                gameModel.practiceHand = selectedPracticeHand
+                gameModel.soloGameMode = .practice
+                showingPracticeSetup = false
+                startSoloGame()
+            } label: {
+                Text("Start Practice")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(gameModel.practiceRecording == nil)
+            .frame(maxWidth: 320)
+        }
+        .font(.system(size: 16, weight: .bold))
+        .frame(width: 320)
+        .onAppear {
+            refreshPracticeRecordings()
+            practiceRecordingName = gameModel.practiceRecordingName
+            selectedPracticeHand = gameModel.practiceHand
+        }
     }
     
     var recordingsListView: some View {
@@ -212,12 +325,16 @@ struct Start: View {
             savedRecordings = []
         }
     }
+
+    private func refreshPracticeRecordings() {
+        practiceRecordings = practiceCaptureManager.listSavedRecordings()
+    }
     
     private func startSoloGame() {
         gameModel.isPlaying = true
         
         // For recording and playback modes, skip countdown and go directly to the space
-        if gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback {
+        if gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback || gameModel.soloGameMode == .practice {
             // Skip the normal game flow - directly open immersive space
             gameModel.isInputSelected = true
             gameModel.inputKind = .hands
@@ -250,6 +367,27 @@ struct Start: View {
             startSoloGame()
         } catch {
             print("Failed to load recording: \(error)")
+        }
+    }
+
+    private func loadPracticeRecording(from url: URL) {
+        do {
+            let needsSecurityScope = url.startAccessingSecurityScopedResource()
+            defer {
+                if needsSecurityScope {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            let recording = try practiceCaptureManager.loadRecording(from: url)
+            gameModel.practiceRecording = recording
+            gameModel.practiceRecordingName = url.lastPathComponent
+            selectedPracticeURL = url
+            practiceRecordingName = url.lastPathComponent
+            if !practiceRecordings.contains(url) {
+                practiceRecordings.insert(url, at: 0)
+            }
+        } catch {
+            print("Failed to load practice recording: \(error)")
         }
     }
 

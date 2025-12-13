@@ -52,7 +52,7 @@ struct HappyBeam: View {
         
         .onReceive(timer) { _ in
             // Skip game timer logic for recording and playback modes
-            if gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback {
+            if gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback || gameModel.soloGameMode == .practice {
                 // In recording/playback mode, don't run game timer, spawn clouds, or auto-exit
                 return
             }

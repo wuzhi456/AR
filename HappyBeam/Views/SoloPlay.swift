@@ -26,6 +26,8 @@ struct SoloPlay: View {
                 case .playback:
                     // Playback mode UI
                     playbackModeUI
+                case .practice:
+                    practiceModeUI
                 case .normal:
                     // Normal mode UI
                     normalModeUI
@@ -90,26 +92,41 @@ struct SoloPlay: View {
     }
     
     private var recordingModeIcon: String {
-        if gameModel.soloGameMode == .recording {
+        switch gameModel.soloGameMode {
+        case .recording:
             return gameModel.isActivelyRecording ? "record.circle.fill" : "record.circle"
-        } else {
+        case .playback:
             return gameModel.isActivelyPlayingBack ? "play.circle.fill" : "play.circle"
+        case .practice:
+            return gameModel.isActivelyPlayingBack ? "hand.point.up.left.fill" : "hand.point.up.left"
+        case .normal:
+            return "play.circle"
         }
     }
     
     private var recordingModeColor: Color {
-        if gameModel.soloGameMode == .recording {
+        switch gameModel.soloGameMode {
+        case .recording:
             return gameModel.isActivelyRecording ? .red : .gray
-        } else {
+        case .playback:
             return gameModel.isActivelyPlayingBack ? .green : .gray
+        case .practice:
+            return gameModel.isActivelyPlayingBack ? .blue : .gray
+        case .normal:
+            return .gray
         }
     }
     
     private var recordingModeText: String {
-        if gameModel.soloGameMode == .recording {
+        switch gameModel.soloGameMode {
+        case .recording:
             return gameModel.isActivelyRecording ? "Recording" : "Ready to Record"
-        } else {
+        case .playback:
             return gameModel.isActivelyPlayingBack ? "Playing" : "Ready to Play"
+        case .practice:
+            return gameModel.isActivelyPlayingBack ? "Practicing" : "Ready to Practice"
+        case .normal:
+            return ""
         }
     }
     
@@ -233,6 +250,10 @@ struct SoloPlay: View {
         let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
+
+    private var practiceHandLabel: String {
+        "Hand: \(gameModel.practiceHand.displayName)"
+    }
     
     // MARK: - Playback Mode UI
     
@@ -291,6 +312,86 @@ struct SoloPlay: View {
                 }
                 
                 // Stop button (reset playback to beginning)
+                if gameModel.isActivelyPlayingBack || gameModel.playbackElapsedTime > 0 {
+                    Button {
+                        NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+                    } label: {
+                        Label("Stop", systemImage: "stop.circle")
+                            .labelStyle(.iconOnly)
+                    }
+                }
+                
+                Spacer()
+            }
+            .background(
+                .regularMaterial,
+                in: .rect(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: 12,
+                    bottomTrailingRadius: 12,
+                    topTrailingRadius: 0,
+                    style: .continuous
+                )
+            )
+            .frame(width: 260, height: 70)
+            .offset(y: 15)
+        }
+    }
+
+    // MARK: - Practice Mode UI
+    private var practiceModeUI: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                Button {
+                    handlePracticeBackButton()
+                } label: {
+                    Label("Back", systemImage: "chevron.backward")
+                        .labelStyle(.iconOnly)
+                }
+                .offset(x: -23)
+                
+                VStack(spacing: 2) {
+                    Text(formattedPlaybackTime)
+                        .font(.system(size: 44))
+                        .bold()
+                        .monospacedDigit()
+                        .foregroundColor(gameModel.isActivelyPlayingBack ? .blue : .primary)
+                        .accessibilityLabel(Text("Practice Time"))
+                        .accessibilityValue(Text(formattedPlaybackTime))
+                    Text(practiceHandLabel)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if let name = gameModel.practiceRecordingName {
+                        Text(name)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                .padding(.trailing, 30)
+            }
+            
+            Text(gameModel.isActivelyPlayingBack ? "practicing" : "ready")
+                .font(.system(size: 22))
+                .bold()
+                .accessibilityHidden(true)
+                .offset(y: -4)
+            
+            HStack(spacing: 8) {
+                Spacer()
+                
+                Button {
+                    handlePracticeToggle()
+                } label: {
+                    Label(
+                        gameModel.isActivelyPlayingBack ? "Pause Practice" : "Start Practice",
+                        systemImage: gameModel.isActivelyPlayingBack ? "pause.circle.fill" : "play.circle"
+                    )
+                    .labelStyle(.iconOnly)
+                    .foregroundColor(gameModel.isActivelyPlayingBack ? .blue : .primary)
+                }
+                
                 if gameModel.isActivelyPlayingBack || gameModel.playbackElapsedTime > 0 {
                     Button {
                         NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
@@ -442,6 +543,24 @@ struct SoloPlay: View {
             NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
         } else {
             // Start/resume playback
+            NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
+        }
+    }
+
+    private func handlePracticeBackButton() {
+        if gameModel.isActivelyPlayingBack {
+            NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+        }
+        Task {
+            await dismissImmersiveSpace()
+        }
+        gameModel.reset()
+    }
+    
+    private func handlePracticeToggle() {
+        if gameModel.isActivelyPlayingBack {
+            NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
+        } else {
             NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
         }
     }

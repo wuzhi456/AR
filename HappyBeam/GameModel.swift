@@ -17,6 +17,8 @@ enum SoloGameMode {
     case recording
     /// Playback mode - displays recorded hand data while playing.
     case playback
+    /// Practice mode - follows a coach recording with selected hand overlay.
+    case practice
 }
 
 /// State that drives the different screens of the game and options that players select.
@@ -29,6 +31,11 @@ class GameModel {
     
     /// The recording to play back in playback mode.
     var playbackRecording: HandPoseRecording?
+
+    /// The recording to use as a coach in practice mode.
+    var practiceRecording: HandPoseRecording?
+    var practiceRecordingName: String?
+    var practiceHand: PracticeHand = .right
     
     /// Whether the user is in Calligraphy Comparison mode.
     var isCalligraphyComparisonMode = false
@@ -61,7 +68,7 @@ class GameModel {
     var isPaused = false {
         didSet {
             // Skip game-related music control for recording/playback modes
-            if soloGameMode == .recording || soloGameMode == .playback {
+            if soloGameMode == .recording || soloGameMode == .playback || soloGameMode == .practice {
                 return
             }
             
@@ -200,6 +207,9 @@ class GameModel {
         players = initialPlayers
         soloGameMode = .normal
         playbackRecording = nil
+    practiceRecording = nil
+    practiceRecordingName = nil
+    practiceHand = .right
         
         // Reset recording mode state
         isActivelyRecording = false
@@ -336,4 +346,12 @@ enum InputKind {
     
     /// An input method that spawns a stationary heart projector.
     case alternative
+}
+
+enum PracticeHand: String, CaseIterable, Identifiable {
+    case left
+    case right
+    
+    var id: String { rawValue }
+    var displayName: String { rawValue.capitalized }
 }

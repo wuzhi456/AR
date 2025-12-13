@@ -260,9 +260,7 @@ struct HappyBeamSpace: View {
     // MARK: - Hand Visualization Update
     
     private func updateHandVisualizations() {
-        // For recording and playback modes, always show hand visualization regardless of isPaused
-        let isRecordingOrPlayback = gameModel.soloGameMode == .recording || gameModel.soloGameMode == .playback
-        
+        // For recording, playback, and practice modes, always show hand visualization regardless of isPaused
         guard gameModel.isPlaying else {
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
@@ -317,6 +315,35 @@ struct HappyBeamSpace: View {
                     playbackRightHandVisualization?.clear()
                 }
             }
+
+        case .practice:
+            // Practice mode: show only the selected practice hand from the coach recording
+            leftHandVisualization?.clear()
+            rightHandVisualization?.clear()
+            
+            if gameModel.isActivelyPlayingBack, let frame = captureManager.currentPlaybackFrame {
+                if gameModel.practiceHand == .left {
+                    playbackLeftHandVisualization?.update(with: frame.leftJoints)
+                    playbackRightHandVisualization?.clear()
+                } else {
+                    playbackRightHandVisualization?.update(with: frame.rightJoints)
+                    playbackLeftHandVisualization?.clear()
+                }
+                gameModel.playbackElapsedTime = captureManager.playbackElapsedTime
+            } else if !gameModel.isActivelyPlayingBack {
+                if let frame = captureManager.currentPlaybackFrame {
+                    if gameModel.practiceHand == .left {
+                        playbackLeftHandVisualization?.update(with: frame.leftJoints)
+                        playbackRightHandVisualization?.clear()
+                    } else {
+                        playbackRightHandVisualization?.update(with: frame.rightJoints)
+                        playbackLeftHandVisualization?.clear()
+                    }
+                } else {
+                    playbackLeftHandVisualization?.clear()
+                    playbackRightHandVisualization?.clear()
+                }
+            }
         }
     }
     
@@ -342,8 +369,20 @@ struct HappyBeamSpace: View {
                 if let lastFrame = recording.frames.last {
                     gameModel.playbackTotalDuration = lastFrame.timestamp
                 }
+            } else {
+                gameModel.playbackTotalDuration = 0
             }
             // Do not auto-start playback
+
+        case .practice:
+            // Practice mode: derive duration from coach recording
+            if let recording = gameModel.practiceRecording {
+                if let lastFrame = recording.frames.last {
+                    gameModel.playbackTotalDuration = lastFrame.timestamp
+                }
+            } else {
+                gameModel.playbackTotalDuration = 0
+            }
         }
     }
     
@@ -378,7 +417,8 @@ struct HappyBeamSpace: View {
     // MARK: - Playback Control Methods
     
     private func startPlayback() {
-        if let recording = gameModel.playbackRecording {
+        let recording = (gameModel.soloGameMode == .practice) ? gameModel.practiceRecording : gameModel.playbackRecording
+        if let recording {
             captureManager.beginPlayback(with: recording)
             gameModel.isActivelyPlayingBack = true
         }
@@ -408,6 +448,10 @@ struct HappyBeamSpace: View {
             }
             
         case .playback:
+            captureManager.stopPlayback()
+            gameModel.isActivelyPlayingBack = false
+
+        case .practice:
             captureManager.stopPlayback()
             gameModel.isActivelyPlayingBack = false
         }

@@ -1116,6 +1116,9 @@
         }
       }
     },
+    "Choose File" : {
+
+    },
     "Choose how you’ll cheer up grumpy clouds." : {
       "comment" : "Asks the user about how they will want to control the game.",
       "localizations" : {
@@ -1636,6 +1639,9 @@
     "Pause Playback" : {
 
     },
+    "Pause Practice" : {
+
+    },
     "Play" : {
       "comment" : "Button to play the game",
       "localizations" : {
@@ -1822,6 +1828,18 @@
     "playing" : {
 
     },
+    "Practice Hand" : {
+
+    },
+    "Practice Mode" : {
+
+    },
+    "Practice Time" : {
+
+    },
+    "practicing" : {
+
+    },
     "Project happy hearts to cheer up grumpy clouds." : {
       "comment" : "Subtitle text for the SharePlay join dialog.",
       "localizations" : {
@@ -1948,6 +1966,9 @@
     "Select Coach File" : {
 
     },
+    "Select Coach JSON" : {
+
+    },
     "Select User File" : {
 
     },
@@ -1955,6 +1976,9 @@
 
     },
     "Start Playback" : {
+
+    },
+    "Start Practice" : {
 
     },
     "Start Recording" : {
