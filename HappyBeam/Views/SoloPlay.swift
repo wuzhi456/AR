@@ -254,6 +254,22 @@ struct SoloPlay: View {
     private var practiceHandLabel: String {
         "Hand: \(gameModel.practiceHand.displayName)"
     }
+
+    private var practiceFrameInfo: String? {
+        guard let recording = gameModel.practiceRecording else { return nil }
+        let total = recording.frames.count
+        let idx = nearestPracticeFrameIndex(in: recording)
+        let ts = recording.frames[idx].timestamp
+        return String(format: "帧 %d/%d · t=%.2fs", idx + 1, total, ts)
+    }
+
+    private func nearestPracticeFrameIndex(in recording: HandPoseRecording) -> Int {
+        if let idx = recording.frames.enumerated().min(by: { abs($0.element.timestamp - gameModel.playbackElapsedTime) < abs($1.element.timestamp - gameModel.playbackElapsedTime) })?.offset {
+            return idx
+        }
+        return 0
+    }
+
     
     // MARK: - Playback Mode UI
     
@@ -361,6 +377,12 @@ struct SoloPlay: View {
                     Text(practiceHandLabel)
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    if let practiceInfo = practiceFrameInfo {
+                        Text(practiceInfo)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                     if let name = gameModel.practiceRecordingName {
                         Text(name)
                             .font(.caption2)

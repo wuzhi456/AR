@@ -33,6 +33,8 @@ struct HappyBeamSpace: View {
     @State private var rightHandVisualization: HandVisualization?
     @State private var playbackLeftHandVisualization: HandVisualization?
     @State private var playbackRightHandVisualization: HandVisualization?
+    @State private var practiceGhostVisualization: HandVisualization?
+    @State private var practiceGhostFrameIndex: Int = 0
     
     // Recording/playback management
     @StateObject private var captureManager = HandCaptureManager()
@@ -239,22 +241,28 @@ struct HappyBeamSpace: View {
         // Create hand visualizations for playback mode (recorded hands - different color)
         let playbackLeftVis = HandVisualization(name: "PlaybackLeftHandVisualization", jointColor: .green, boneColor: .yellow)
         let playbackRightVis = HandVisualization(name: "PlaybackRightHandVisualization", jointColor: .orange, boneColor: .yellow)
+
+        // Practice ghost visualization (default red/yellow, rendered on top for clarity)
+        let practiceGhost = HandVisualization(name: "PracticeGhostVisualization", jointColor: .red.withAlphaComponent(0.7), boneColor: .red.withAlphaComponent(0.5), renderOnTop: true)
         
         content.add(leftVis.rootEntity)
         content.add(rightVis.rootEntity)
         content.add(playbackLeftVis.rootEntity)
         content.add(playbackRightVis.rootEntity)
+        content.add(practiceGhost.rootEntity)
         
         // Initially hide all visualizations
         leftVis.rootEntity.isEnabled = false
         rightVis.rootEntity.isEnabled = false
         playbackLeftVis.rootEntity.isEnabled = false
         playbackRightVis.rootEntity.isEnabled = false
+        practiceGhost.rootEntity.isEnabled = false
         
         leftHandVisualization = leftVis
         rightHandVisualization = rightVis
         playbackLeftHandVisualization = playbackLeftVis
         playbackRightHandVisualization = playbackRightVis
+        practiceGhostVisualization = practiceGhost
     }
     
     // MARK: - Hand Visualization Update
@@ -298,6 +306,7 @@ struct HappyBeamSpace: View {
             // Playback mode: show playback hands only (not user's hands)
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
+            practiceGhostVisualization?.clear()
             
             // Update playback visualization only when actively playing
             if gameModel.isActivelyPlayingBack, let frame = captureManager.currentPlaybackFrame {
@@ -317,34 +326,69 @@ struct HappyBeamSpace: View {
             }
 
         case .practice:
-            // Practice mode: show only the selected practice hand from the coach recording
+            // Practice mode: render a ghost hand from the coach recording and gate playback by user proximity.
             leftHandVisualization?.clear()
             rightHandVisualization?.clear()
-            
-            if gameModel.isActivelyPlayingBack, let frame = captureManager.currentPlaybackFrame {
-                if gameModel.practiceHand == .left {
-                    playbackLeftHandVisualization?.update(with: frame.leftJoints)
-                    playbackRightHandVisualization?.clear()
-                } else {
-                    playbackRightHandVisualization?.update(with: frame.rightJoints)
-                    playbackLeftHandVisualization?.clear()
-                }
-                gameModel.playbackElapsedTime = captureManager.playbackElapsedTime
-            } else if !gameModel.isActivelyPlayingBack {
-                if let frame = captureManager.currentPlaybackFrame {
-                    if gameModel.practiceHand == .left {
-                        playbackLeftHandVisualization?.update(with: frame.leftJoints)
-                        playbackRightHandVisualization?.clear()
-                    } else {
-                        playbackRightHandVisualization?.update(with: frame.rightJoints)
-                        playbackLeftHandVisualization?.clear()
-                    }
-                } else {
-                    playbackLeftHandVisualization?.clear()
-                    playbackRightHandVisualization?.clear()
-                }
-            }
+            playbackLeftHandVisualization?.clear()
+            playbackRightHandVisualization?.clear()
+            updatePracticeGhost()
         }
+    }
+
+    private func updatePracticeGhost() {
+        guard let recording = gameModel.practiceRecording,
+              !recording.frames.isEmpty,
+              let ghost = practiceGhostVisualization else {
+            practiceGhostVisualization?.clear()
+            return
+        }
+        // Clamp frame index
+        practiceGhostFrameIndex = min(max(practiceGhostFrameIndex, 0), recording.frames.count - 1)
+        let frame = recording.frames[practiceGhostFrameIndex]
+        let joints = gameModel.practiceHand == .left ? frame.leftJoints : frame.rightJoints
+        ghost.update(with: joints, interpolateMissing: true)
+        ghost.rootEntity.isEnabled = true
+    // Track elapsed time using frame timestamp
+    gameModel.playbackElapsedTime = frame.timestamp
+        
+        // Use wrist (or fallback) as anchor for proximity check
+        guard let userAnchor = referencePoint(from: gameModel.practiceHand),
+              let ghostAnchor = referencePoint(from: joints) else {
+            // No reference joints; keep ghost red and paused
+            ghost.setColors(jointColor: .red.withAlphaComponent(0.7), boneColor: .red.withAlphaComponent(0.5))
+            return
+        }
+        let distance = simd_distance(userAnchor, ghostAnchor)
+        let threshold: Float = 0.15 // 15 cm
+        if distance < threshold {
+            // Close enough: turn green and advance a frame (bounded)
+            ghost.setColors(jointColor: .green.withAlphaComponent(0.8), boneColor: .green.withAlphaComponent(0.6))
+            if practiceGhostFrameIndex < recording.frames.count - 1 {
+                practiceGhostFrameIndex += 1
+            }
+        } else {
+            // Too far: stay red and pause
+            ghost.setColors(jointColor: .red.withAlphaComponent(0.7), boneColor: .red.withAlphaComponent(0.5))
+        }
+    }
+
+    private func referencePoint(from joints: [HandJointPose]) -> SIMD3<Float>? {
+        // Prefer wrist; fallback to index knuckle; then first joint
+        if let wrist = joints.first(where: { $0.name == "wrist" }) {
+            return SIMD3<Float>(wrist.position[0], wrist.position[1], wrist.position[2])
+        }
+        if let indexKnuckle = joints.first(where: { $0.name.contains("indexFingerKnuckle") || $0.name == "indexFingerMCP" }) {
+            return SIMD3<Float>(indexKnuckle.position[0], indexKnuckle.position[1], indexKnuckle.position[2])
+        }
+        if let first = joints.first {
+            return SIMD3<Float>(first.position[0], first.position[1], first.position[2])
+        }
+        return nil
+    }
+    
+    private func referencePoint(from hand: PracticeHand) -> SIMD3<Float>? {
+        let joints = hand == .left ? extractJointPoses(from: gestureModel.latestHandTracking.left) : extractJointPoses(from: gestureModel.latestHandTracking.right)
+        return referencePoint(from: joints)
     }
     
     // MARK: - Game Mode Handling
@@ -383,6 +427,7 @@ struct HappyBeamSpace: View {
             } else {
                 gameModel.playbackTotalDuration = 0
             }
+            practiceGhostFrameIndex = 0
         }
     }
     
@@ -417,22 +462,38 @@ struct HappyBeamSpace: View {
     // MARK: - Playback Control Methods
     
     private func startPlayback() {
-        let recording = (gameModel.soloGameMode == .practice) ? gameModel.practiceRecording : gameModel.playbackRecording
-        if let recording {
-            captureManager.beginPlayback(with: recording)
+        if gameModel.soloGameMode == .practice {
+            // Manual, proximity-gated playback handled in updatePracticeGhost
             gameModel.isActivelyPlayingBack = true
+            practiceGhostFrameIndex = 0
+        } else {
+            let recording = gameModel.playbackRecording
+            if let recording {
+                captureManager.beginPlayback(with: recording)
+                gameModel.isActivelyPlayingBack = true
+            }
         }
     }
     
     private func pausePlayback() {
-        captureManager.pausePlayback()
-        gameModel.isActivelyPlayingBack = false
+        if gameModel.soloGameMode == .practice {
+            gameModel.isActivelyPlayingBack = false
+        } else {
+            captureManager.pausePlayback()
+            gameModel.isActivelyPlayingBack = false
+        }
     }
     
     private func stopPlayback() {
-        captureManager.stopPlayback()
-        gameModel.isActivelyPlayingBack = false
-        gameModel.playbackElapsedTime = 0
+        if gameModel.soloGameMode == .practice {
+            gameModel.isActivelyPlayingBack = false
+            gameModel.playbackElapsedTime = 0
+            practiceGhostFrameIndex = 0
+        } else {
+            captureManager.stopPlayback()
+            gameModel.isActivelyPlayingBack = false
+            gameModel.playbackElapsedTime = 0
+        }
     }
     
     private func handleGameEnd() {
@@ -452,8 +513,8 @@ struct HappyBeamSpace: View {
             gameModel.isActivelyPlayingBack = false
 
         case .practice:
-            captureManager.stopPlayback()
             gameModel.isActivelyPlayingBack = false
+            practiceGhostFrameIndex = 0
         }
         
         // Clear all visualizations

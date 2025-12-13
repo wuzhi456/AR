@@ -16,8 +16,8 @@ class HandVisualization {
     
     private let jointRadius: Float = 0.005
     private let boneRadius: Float = 0.003
-    private let jointColor: UIColor
-    private let boneColor: UIColor
+    private var jointColor: UIColor
+    private var boneColor: UIColor
     private let renderOnTop: Bool
     
     // Store last known positions for interpolation
@@ -31,6 +31,18 @@ class HandVisualization {
         self.jointColor = jointColor
         self.boneColor = boneColor
         self.renderOnTop = renderOnTop
+    }
+
+    /// Update joint and bone colors for all existing entities and future creations.
+    func setColors(jointColor: UIColor, boneColor: UIColor) {
+        self.jointColor = jointColor
+        self.boneColor = boneColor
+        for entity in jointEntities.values {
+            entity.model?.materials = [UnlitMaterial(color: jointColor)]
+        }
+        for entity in boneEntities.values {
+            entity.model?.materials = [UnlitMaterial(color: boneColor)]
+        }
     }
     
     /// Updates the visualization with new joint poses.
