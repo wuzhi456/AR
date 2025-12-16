@@ -34,6 +34,7 @@ struct HappyBeamSpace: View {
     @State private var playbackLeftHandVisualization: HandVisualization?
     @State private var playbackRightHandVisualization: HandVisualization?
     @State private var practiceGhostVisualization: HandVisualization?
+    // Keep track of ghost playback frame; mutate on main actor to avoid missed SwiftUI updates.
     @State private var practiceGhostFrameIndex: Int = 0
     
     // Recording/playback management
@@ -342,14 +343,17 @@ struct HappyBeamSpace: View {
             practiceGhostVisualization?.clear()
             return
         }
-        // Clamp frame index
-        practiceGhostFrameIndex = min(max(practiceGhostFrameIndex, 0), recording.frames.count - 1)
-        let frame = recording.frames[practiceGhostFrameIndex]
+        // Work on a local index, then commit to @State on the main actor to ensure the assignment sticks.
+        var nextIndex = min(max(practiceGhostFrameIndex, 0), recording.frames.count - 1)
+        let frame = recording.frames[nextIndex]
         let joints = gameModel.practiceHand == .left ? frame.leftJoints : frame.rightJoints
         ghost.update(with: joints, interpolateMissing: true)
         ghost.rootEntity.isEnabled = true
-    // Track elapsed time using frame timestamp
-    gameModel.playbackElapsedTime = frame.timestamp
+        // Track elapsed time using frame timestamp
+        let currentTimestamp = frame.timestamp
+        Task { @MainActor in
+            gameModel.playbackElapsedTime = currentTimestamp
+        }
         
         // Use wrist (or fallback) as anchor for proximity check
         guard let userAnchor = referencePoint(from: gameModel.practiceHand),
@@ -359,16 +363,21 @@ struct HappyBeamSpace: View {
             return
         }
         let distance = simd_distance(userAnchor, ghostAnchor)
-        let threshold: Float = 0.15 // 15 cm
+        let threshold: Float = 0.03 // 3cm
         if distance < threshold {
             // Close enough: turn green and advance a frame (bounded)
             ghost.setColors(jointColor: .green.withAlphaComponent(0.8), boneColor: .green.withAlphaComponent(0.6))
-            if practiceGhostFrameIndex < recording.frames.count - 1 {
-                practiceGhostFrameIndex += 1
+            if nextIndex < recording.frames.count - 1 {
+                nextIndex += 1
             }
         } else {
             // Too far: stay red and pause
             ghost.setColors(jointColor: .red.withAlphaComponent(0.7), boneColor: .red.withAlphaComponent(0.5))
+        }
+
+        // Commit the new index on main actor to ensure SwiftUI state updates
+        Task { @MainActor in
+            practiceGhostFrameIndex = nextIndex
         }
     }
 
@@ -427,7 +436,10 @@ struct HappyBeamSpace: View {
             } else {
                 gameModel.playbackTotalDuration = 0
             }
-            practiceGhostFrameIndex = 0
+            Task { @MainActor in
+                practiceGhostFrameIndex = 0
+                gameModel.playbackElapsedTime = 0
+            }
         }
     }
     
@@ -487,8 +499,10 @@ struct HappyBeamSpace: View {
     private func stopPlayback() {
         if gameModel.soloGameMode == .practice {
             gameModel.isActivelyPlayingBack = false
-            gameModel.playbackElapsedTime = 0
-            practiceGhostFrameIndex = 0
+            Task { @MainActor in
+                gameModel.playbackElapsedTime = 0
+                practiceGhostFrameIndex = 0
+            }
         } else {
             captureManager.stopPlayback()
             gameModel.isActivelyPlayingBack = false
