@@ -6,8 +6,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct ImmersiveView: View {
-    @Environment(AppModel.self) var appModel
-    @Environment(HandCaptureManager.self) var captureManager // Use Environment
+    @EnvironmentObject var appModel: AppModel
+    @EnvironmentObject var captureManager: HandCaptureManager // Use shared manager from environment
     @StateObject private var handTrackingModel = HandTrackingModel()
     // @StateObject private var captureManager = HandCaptureManager() // Removed local instance
     @State private var isShowingFileImporter = false
@@ -118,7 +118,7 @@ struct ImmersiveView: View {
 
 #Preview(immersionStyle: .full) {
     ImmersiveView()
-        .environment(AppModel())
+        .environmentObject(AppModel())
 }
 
 private extension ImmersiveView {

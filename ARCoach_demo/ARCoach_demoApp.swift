@@ -9,14 +9,14 @@ struct ARCoach_demoApp: App {
     var body: some Scene {
         WindowGroup(id: "main") {
             LauncherView()
-                .environment(appModel)
-                .environment(captureManager) // Inject into Window
+                .environmentObject(appModel)
+                .environmentObject(captureManager) // Inject into Window
         }
 
-        ImmersiveSpace(id: appModel.immersiveSpaceID) {
+            ImmersiveSpace(id: appModel.immersiveSpaceID) {
             ImmersiveView()
-                .environment(appModel)
-                .environment(captureManager) // Inject into ImmersiveSpace
+                .environmentObject(appModel)
+                .environmentObject(captureManager) // Inject into ImmersiveSpace
                 .onAppear {
                     appModel.immersiveSpaceState = .open
                 }

@@ -46,6 +46,7 @@
 		32D0FA0F291EE85800FF07D8 /* HappyBeamSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D0FA0E291EE85800FF07D8 /* HappyBeamSpace.swift */; };
 		B0B8C3EA2BDC363900704A2C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0B8C3E92BDC363900704A2C /* Localizable.xcstrings */; };
 		B0CF536A2BF5E560000E4337 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0CF53692BF5E560000E4337 /* InfoPlist.xcstrings */; };
+        33A1B2C33A1B2C33A1B2C33 /* GestureModuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -94,6 +95,7 @@
 		9823BBED79461E85755AF17F /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		B0B8C3E92BDC363900704A2C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		B0CF53692BF5E560000E4337 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureModuleView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,6 +195,7 @@
 				32665A96299AB02200EBA549 /* Lobby.swift */,
 				324F304A298AED7300200F22 /* MultiPlay.swift */,
 				324F304C298AF28C00200F22 /* MultiScore.swift */,
+				33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -355,6 +358,7 @@
 				32BD3B68299C26E6005798DF /* GlobalEntities.swift in Sources */,
 				321C576829788A1900DBBE9E /* GameModel.swift in Sources */,
 				32791FB12A30CF24000290A2 /* BeamCollisions.swift in Sources */,
+				33A1B2C33A1B2C33A1B2C33 /* GestureModuleView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

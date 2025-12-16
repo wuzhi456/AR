@@ -2,10 +2,9 @@ import SwiftUI
 import RealityKit
 
 // 模式一 UI：书法比对视图
-=======
 // Mode 1 UI: Calligraphy Comparison View
 struct CalligraphyComparisonView: View {
-    @Environment(HandCaptureManager.self) var captureManager // Use Shared Manager
+    @EnvironmentObject var captureManager: HandCaptureManager // Use Shared Manager
     @State private var isRecording = false
     @State private var recordedFrames: [HVHandInfo] = []
     @State private var comparisonResult: CalligraphyComparisonManager.DTWResult?
@@ -74,7 +73,7 @@ struct CalligraphyComparisonView: View {
             Spacer()
         }
         .padding()
-        .onChange(of: captureManager.latestRightHand) { _, newValue in
+        .onChange(of: captureManager.latestRightHand) { newValue in
             guard isRecording, let handInfo = newValue else { return }
             // 默认录制右手，如果需要支持左手，可以增加 UI 选项切换
             recordedFrames.append(handInfo)

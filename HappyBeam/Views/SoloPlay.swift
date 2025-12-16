@@ -35,7 +35,7 @@ struct SoloPlay: View {
             }
             .padding(.vertical, 12)
         }
-        .frame(width: 260)
+        .frame(width: 360)
         .confirmationDialog(
             "Unsaved Recording",
             isPresented: Binding(
@@ -223,7 +223,7 @@ struct SoloPlay: View {
                     style: .continuous
                 )
             )
-            .frame(width: 260, height: 70)
+            .frame(width: 360, height: 70)
             .offset(y: 15)
         }
     }
@@ -349,7 +349,7 @@ struct SoloPlay: View {
                     style: .continuous
                 )
             )
-            .frame(width: 260, height: 70)
+            .frame(width: 360, height: 70)
             .offset(y: 15)
         }
     }
@@ -435,7 +435,7 @@ struct SoloPlay: View {
                     style: .continuous
                 )
             )
-            .frame(width: 260, height: 70)
+            .frame(width: 360, height: 70)
             .offset(y: 15)
         }
     }
@@ -515,7 +515,7 @@ struct SoloPlay: View {
                     style: .continuous
                 )
             )
-            .frame(width: 260, height: 70)
+            .frame(width: 360, height: 70)
             .offset(y: 15)
         }
     }
@@ -549,14 +549,23 @@ struct SoloPlay: View {
     }
     
     private func handlePlaybackBackButton() {
-        // Stop playback if running
+        // Pause playback if running (don't fully stop -- we want to preserve
+        // the playback position so the user can resume later).
         if gameModel.isActivelyPlayingBack {
-            NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+            NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
         }
+
+        // Request that Start show the recordings list once immersive space is dismissed.
+        NotificationCenter.default.post(name: .showRecordingsListRequested, object: nil)
+
         Task {
             await dismissImmersiveSpace()
         }
-        gameModel.reset()
+
+        // Preserve playbackRecording in GameModel; just clear UI flags.
+        gameModel.isPlaying = false
+        gameModel.isSoloReady = false
+        gameModel.isActivelyPlayingBack = false
     }
     
     private func handlePlaybackToggle() {
@@ -598,6 +607,7 @@ extension Notification.Name {
     static let startPlaybackRequested = Notification.Name("startPlaybackRequested")
     static let pausePlaybackRequested = Notification.Name("pausePlaybackRequested")
     static let stopPlaybackRequested = Notification.Name("stopPlaybackRequested")
+    static let showRecordingsListRequested = Notification.Name("showRecordingsListRequested")
 }
 
 #Preview {

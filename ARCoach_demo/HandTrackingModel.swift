@@ -8,7 +8,7 @@
 import ARKit
 import Foundation
 import SwiftUI
-internal import Combine
+import Combine
 
 /// Publishes live hand-tracking anchors from `HandTrackingProvider`.
 @MainActor

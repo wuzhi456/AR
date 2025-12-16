@@ -469,7 +469,7 @@ struct HappyBeamSpace: View {
         } else {
             let recording = gameModel.playbackRecording
             if let recording {
-                captureManager.beginPlayback(with: recording)
+                captureManager.startOrResumePlayback(with: recording)
                 gameModel.isActivelyPlayingBack = true
             }
         }

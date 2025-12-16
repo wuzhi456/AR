@@ -25,6 +25,7 @@ struct Start: View {
     @State private var practiceRecordingName: String?
     @State private var selectedPracticeHand: PracticeHand = .right
     @State private var recordingPendingDeletion: URL?
+    @State private var showingGestureModule = false
     
     var body: some View {
         VStack(spacing: 10) {
@@ -75,6 +76,18 @@ struct Start: View {
                 print("Practice file selection failed: \(error)")
             }
         }
+        .sheet(isPresented: $showingGestureModule) {
+            GestureModuleView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showRecordingsListRequested)) { _ in
+            // Wait a short moment to allow the immersive space dismissal to
+            // complete, then show the recordings list on the main actor.
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
+                refreshRecordingsList()
+                showingRecordingsList = true
+            }
+        }
     }
     
     var mainMenu: some View {
@@ -108,6 +121,13 @@ struct Start: View {
                 showingPracticeSetup = true
             } label: {
                 Text("Practice Mode")
+                    .frame(maxWidth: .infinity)
+            }
+
+            Button {
+                showingGestureModule = true
+            } label: {
+                Text("Gesture Recognition")
                     .frame(maxWidth: .infinity)
             }
         }

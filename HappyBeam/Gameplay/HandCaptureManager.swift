@@ -150,12 +150,6 @@ final class HandCaptureManager: ObservableObject {
     
     /// Begins playback of a hand pose recording.
     func beginPlayback(with recording: HandPoseRecording) {
-        // If resuming from pause, continue from where we left off
-        if playbackRecording != nil && playbackStartIndex > 0 {
-            resumePlayback()
-            return
-        }
-        
         stopPlayback()
         guard !recording.frames.isEmpty else { return }
         
@@ -205,6 +199,25 @@ final class HandCaptureManager: ObservableObject {
                 self.playbackStartOffset = 0
             }
         }
+    }
+
+    /// Public-safe start: will resume if the same recording is already loaded and paused,
+    /// otherwise begin fresh playback.
+    func startOrResumePlayback(with recording: HandPoseRecording) {
+        // If we already have a recording loaded and it appears to be the same
+        // recording (same frame count and first/last timestamps), resume; otherwise
+        // start fresh with the provided recording.
+        if let loaded = playbackRecording {
+            let sameCount = loaded.frames.count == recording.frames.count
+            let sameFirst = loaded.frames.first?.timestamp == recording.frames.first?.timestamp
+            let sameLast = loaded.frames.last?.timestamp == recording.frames.last?.timestamp
+            if sameCount && sameFirst && sameLast {
+                resumePlayback()
+                return
+            }
+        }
+
+        beginPlayback(with: recording)
     }
     
     /// Resumes playback from where it was paused.
@@ -266,7 +279,48 @@ final class HandCaptureManager: ObservableObject {
         playbackTask?.cancel()
         playbackTask = nil
         isPlayingBack = false
-        // Keep currentPlaybackFrame and playbackStartIndex so we can resume
+
+        // Compute a robust resume index so resume continues from the nearest
+        // frame instead of restarting from zero. Prefer the explicit
+        // `playbackElapsedTime` when available; otherwise use the
+        // `currentPlaybackFrame` as a fallback (handles race conditions).
+        if let recording = playbackRecording {
+            if playbackElapsedTime > 0 {
+                if let idx = recording.frames.firstIndex(where: { $0.timestamp >= self.playbackElapsedTime }) {
+                    playbackStartIndex = max(0, idx)
+                    playbackStartOffset = recording.frames[playbackStartIndex].timestamp
+                } else {
+                    // If elapsed time is beyond last frame, set to last index.
+                    playbackStartIndex = max(0, recording.frames.count - 1)
+                    playbackStartOffset = recording.frames[playbackStartIndex].timestamp
+                }
+            } else if let current = currentPlaybackFrame {
+                // Try to find exact match first, otherwise pick nearest frame.
+                if let idx = recording.frames.firstIndex(where: { $0.timestamp == current.timestamp }) {
+                    playbackStartIndex = idx
+                    playbackStartOffset = current.timestamp
+                    playbackElapsedTime = current.timestamp
+                } else if let nearest = recording.frames.enumerated().min(by: { abs($0.element.timestamp - current.timestamp) < abs($1.element.timestamp - current.timestamp) })?.offset {
+                    playbackStartIndex = nearest
+                    playbackStartOffset = recording.frames[playbackStartIndex].timestamp
+                    playbackElapsedTime = recording.frames[playbackStartIndex].timestamp
+                } else {
+                    // fallback to start
+                    playbackStartIndex = 0
+                    playbackStartOffset = 0
+                    playbackElapsedTime = 0
+                }
+            } else {
+                // Final fallback: use elapsed time search (may be zero)
+                if let idx = recording.frames.firstIndex(where: { $0.timestamp >= self.playbackElapsedTime }) {
+                    playbackStartIndex = max(0, idx)
+                    playbackStartOffset = recording.frames[playbackStartIndex].timestamp
+                } else {
+                    playbackStartIndex = max(0, recording.frames.count - 1)
+                    playbackStartOffset = recording.frames[playbackStartIndex].timestamp
+                }
+            }
+        }
     }
     
     /// Stops the current playback completely.

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "—" : {
+
+    },
     "(you)" : {
       "comment" : "Label next to a player's name to indicate who it is.",
       "localizations" : {
@@ -35,6 +38,9 @@
           }
         }
       }
+    },
+    "(待实现)" : {
+
     },
     "/ %@" : {
 
@@ -933,6 +939,9 @@
     "%lld%%" : {
 
     },
+    "• 将双手靠拢拇指与食指接触可触发 Heart 手势。\n• 单侧拇指与食指接近可触发 Pinch (捏合) 检测。" : {
+
+    },
     "Altus" : {
       "localizations" : {
         "de" : {
@@ -1274,6 +1283,9 @@
     "Delete this recording?" : {
 
     },
+    "Detected" : {
+
+    },
     "Discard" : {
 
     },
@@ -1281,6 +1293,9 @@
 
     },
     "Found %lld recordings" : {
+
+    },
+    "Gesture Recognition" : {
 
     },
     "Great job!" : {
@@ -1455,6 +1470,9 @@
         }
       }
     },
+    "Heart Gesture" : {
+
+    },
     "Hiding beam" : {
       "localizations" : {
         "de" : {
@@ -1491,6 +1509,12 @@
     },
     "Import from Files" : {
       "comment" : "Import recording from file system"
+    },
+    "Left Hand" : {
+
+    },
+    "Left Pinch" : {
+
     },
     "Loading assets…" : {
       "localizations" : {
@@ -1599,6 +1623,9 @@
 
     },
     "No recordings found" : {
+
+    },
+    "Not detected" : {
 
     },
     "Pause" : {
@@ -1887,6 +1914,12 @@
     "Replay" : {
 
     },
+    "Right Hand" : {
+
+    },
+    "Right Pinch" : {
+
+    },
     "Save" : {
 
     },
@@ -2025,6 +2058,9 @@
     "Stop Recording" : {
 
     },
+    "Tracked" : {
+
+    },
     "Trim Recordings" : {
 
     },
@@ -2107,6 +2143,9 @@
         }
       }
     },
+    "Yes" : {
+
+    },
     "You cheered up %lld grumpy clouds." : {
       "comment" : "This text describes the results of the players efforts in the game.",
       "localizations" : {
@@ -2179,6 +2218,18 @@
           }
         }
       }
+    },
+    "小游戏" : {
+
+    },
+    "小游戏占位" : {
+
+    },
+    "识别" : {
+
+    },
+    "说明" : {
+
     }
   },
   "version" : "1.1"

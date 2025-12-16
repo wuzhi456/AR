@@ -2,7 +2,7 @@ import SwiftUI
 
 // Gesture Recognition View
 struct GestureRecognitionView: View {
-    @Environment(HandCaptureManager.self) var captureManager // Use Shared Manager
+    @EnvironmentObject private var captureManager: HandCaptureManager // Use Shared Manager
     @State private var recognizedGestureName: String = "等待识别..."
     @State private var recognizedScore: Float = 0.0
     @State private var recognizedIcon: String = "hand.raised"
@@ -61,11 +61,11 @@ struct GestureRecognitionView: View {
             Spacer()
         }
         .padding()
-        .onChange(of: captureManager.latestRightHand) { _, newValue in
+        .onChange(of: captureManager.latestRightHand) { newValue in
             guard isRecognizing, let handInfo = newValue else { return }
             processFrame(handInfo)
         }
-        .onChange(of: captureManager.latestLeftHand) { _, newValue in
+        .onChange(of: captureManager.latestLeftHand) { newValue in
             guard isRecognizing, let handInfo = newValue else { return }
             processFrame(handInfo)
         }

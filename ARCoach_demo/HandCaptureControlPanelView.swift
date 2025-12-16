@@ -2,8 +2,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct HandCaptureControlPanelView: View {
-    @Environment(AppModel.self) private var appModel
-    @Environment(HandCaptureManager.self) private var captureManager
+    @EnvironmentObject private var appModel: AppModel
+    @EnvironmentObject private var captureManager: HandCaptureManager
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var isShowingFileImporter = false
