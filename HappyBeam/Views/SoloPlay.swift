@@ -356,7 +356,7 @@ struct SoloPlay: View {
                 Text("1.5x").tag(1.5)
             }
             .pickerStyle(.segmented)
-            .frame(width: 200)
+            .frame(width: 300)
             .padding(.bottom, 8)
             .onChange(of: playbackSpeed) { _, newSpeed in
                 NotificationCenter.default.post(name: .setPlaybackSpeedRequested, object: newSpeed)
