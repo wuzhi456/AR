@@ -1,386 +1,481 @@
-# 空间计算范式下的身心教学法：基于 Apple Vision Pro 构建增强现实书法动作教练的研究报告
+# 空间计算范式下的身心教学法：基于 Apple Vision Pro 构建增强现实书法动作教练的项目报告
 
-## 1. 执行摘要：生物力学与空间计算的融合
+## 1. 执行摘要：项目实现概述
 
-随着高保真光学手部追踪技术的问世，以 Apple Vision Pro (AVP) 为代表的空间计算设备标志着人机交互 (HCI) 从符号输入（键盘、触摸屏）向身心输入（直接身体运动）的范式转变。这一转变释放了“具身数字教学法”的潜力——即不仅传输信息，而且通过直接的动作模仿、生物力学分析和实时矫正来转移运动技能的系统。本报告旨在对开发基于增强现实 (AR) 的手部动作教练系统进行全面的架构与理论分析，该系统专门针对中国书法这一对精细运动控制要求极高的领域进行定制。
+本报告记录了基于 Apple Vision Pro (AVP) 的增强现实手部动作教练系统（ARCoach）的实际开发与实现成果。项目利用 AVP 的高保真光学手部追踪技术，实现了中国书法动作学习的"记录-回放-比较"功能闭环。
 
-拟议的系统利用 AVP 的自我中心追踪能力，将传统的“师徒身授”模式数字化。通过将用户的需求分解为四大功能支柱——**记录 (Record)**（运动学采集）、**回放 (Replay)**（视觉建模）、**比较 (Compare)**（算法评估）和 **练习 (Practice)**（实时反馈循环）——我们建立了一个严谨的“虚拟师父”框架。核心挑战不仅在于位置追踪，更在于如何在缺乏原生力反馈硬件的情况下，通过速度和加速度矢量作为代理变量，捕捉书法中的*力*（笔者力道）和*意*（艺术精神或“神”）。
+本项目采用**原生 visionOS 开发栈（RealityKit + SwiftUI + ARKit）**构建，已成功实现以下三大核心功能模块：
 
-本文件详细剖析了利用 26 点骨骼追踪进行精细运动评估的技术可行性，提出了一种用于手势比较的**四元数导数动态时间规整 (QD-DTW)** 算法，并详述了在 visionOS 生态系统约束下实现软体笔刷物理模拟的方案。结论指出，尽管当前的硬件延迟（约 128ms）对快速的草书风格构成了挑战，但 AVP 的高频采样和亚毫米级精度使其成为基础*楷书*训练的可行平台，前提是必须有效地采用多感官反馈替代（声音化和视觉触觉）来补偿触觉阻力的缺失。
+1. **记录模块 (Recording)**：通过 `HandTrackingProvider` 获取 26 关节骨骼数据，并以 JSON 格式持久化存储手部姿态序列。
+2. **回放模块 (Playback)**：加载已保存的手部姿态数据，在 AR 沉浸式空间中重建并可视化手部运动轨迹。
+3. **比较模块 (Comparison)**：支持加载"教练"和"学员"两份录制数据，通过相似度算法计算动作匹配程度并给出百分比评分。
 
-------
+项目还包含一个完整的 **HappyBeam** 应用框架，提供了沉浸式空间的完整生命周期管理，以及基于手势识别的游戏交互系统（如"爱心手势"检测）。
 
-## 2. 硬件基础：作为运动采集仪器的 Apple Vision Pro
-
-任何运动训练系统的有效性都受限于其传感器的保真度。在书法这一领域，拙劣的笔触与大师级作品之间的差异往往仅在毫厘之间的压力变化和毫秒之间的停顿控制，因此 Apple Vision Pro 的追踪规格至关重要。
-
-### 2.1 手部追踪的保真度与精度
-
-Apple Vision Pro 利用自我中心摄像头和激光雷达 (LiDAR) 的传感器融合技术，重建手部的 26 个关节骨骼模型 1。研究表明，在最佳光照条件下，该系统的平均位置精度保持在 **0.8 ± 0.3 毫米**，帧间一致性达到 **98.7%** 3。这种亚毫米级的精度在理论上足以检测书法执笔法中“擫、押、钩、格、抵”五指执笔法所需的微妙手指操作。
-
-然而，在快速移动过程中，精度会下降（最大偏差可达 2.1 毫米） 3。在书法中，*提*（提起笔锋）和*按*（按压笔锋）的动作通常涉及快速的加速度变化。如果追踪系统为了减少抖动而应用了过度的“平滑”滤波，可能会无意中抹去书法家在笔画末端进行*顿*（停顿和回锋）时特征性的“微颤”或“力调制”。因此，必须从 visionOS 的 `HandTrackingProvider` 获取原始数据流，并在应用层应用最小化的平滑滤波，转而依赖于自定义的运动学滤波算法，以保留书法笔画中关键的急剧拐点。
-
-### 2.2 延迟与本体感觉漂移
-
-延迟是实时运动指导的关键瓶颈。独立测试表明，AVP 的光子到手部追踪延迟（Photon-to-Motion Latency）约为 **128ms**（包括约 11ms 的透视延迟和处理时间） 4。虽然 visionOS 2.0+ 中的 `HandTrackingProvider` 利用预测算法可以有效降低用于预测渲染的*感知*延迟 5，但这对于“重影手”叠加（即学生将自己的手与虚拟老师的手对齐）仍然是一个挑战。
-
-如果延迟超过 100ms，会导致“本体感觉漂移”——即用户感觉手所在的位置与系统可视化位置之间出现不匹配。这对于*记录*和*回放*模式影响较小，但对于*练习*模式至关重要。为了减轻这种影响，系统必须利用“预测姿态渲染”，基于当前的速度矢量将虚拟笔尖的位置向前投影，以便在视觉上与用户的本体感觉同步。此外，由于楷书书写通常是缓慢而深思熟虑的（与拳击或节奏游戏不同），如果视觉反馈是连续且流畅的，这种延迟在教学上是可管理的。
-
-### 2.3 工具操纵中的遮挡问题
-
-AR 书法的一个重大挑战是物理手部与虚拟毛笔之间的交互。AVP 使用基于深度的遮挡技术来掩盖位于真实手部后方的虚拟物体 7。然而，当用户通过“捏合”手势持有虚拟毛笔时（毛笔作为食指和拇指的延伸），遮挡遮罩有时会错误地“吞噬”虚拟物体的一部分，破坏沉浸感。
-
-更为关键的是，API 返回的 `pinch`（捏合）强度值是一个 0 到 1 的归一化标量 9，这并非物理力的测量。系统不能仅仅根据用户捏合手指的紧度来推断施加在纸上的“压力”，而必须根据笔尖相对于虚拟纸张平面的 **Z 轴深度**来计算。这种“穿透深度”将驱动虚拟刷毛的铺展计算，要求碰撞检测必须独立于视觉遮挡网格进行精确运算 8。
-
-### 2.4 数据采集的具体参数要求
-
-为了实现高精度的书法教学，单纯的骨骼位置数据是不够的。系统需要以尽可能高的频率（理想为 90Hz 或更高）采集以下数据向量：
-
-1. **关节位置 ($P_{joint}$)**：世界坐标系下的 $(x, y, z)$。
-2. **关节旋转 ($R_{joint}$)**：四元数表示的局部旋转 $(x, y, z, w)$。
-3. **置信度 ($C_{confidence}$)**：系统对当前追踪质量的评估，用于过滤噪声数据。
-4. **时间戳 ($t$)**：纳秒级精度，用于准确计算速度和加速度。
-
-这些数据将构成“记录”模块的基础，并作为“比较”模块中 DTW 算法的输入序列。
+系统当前版本聚焦于验证 AVP 手部追踪在书法动作教学场景下的可行性，为未来扩展更高级的实时练习模式和动态反馈机制奠定了基础。
 
 ------
 
-## 3. 算法核心：面向六自由度生物力学的高级动态时间规整 (DTW)
+## 2. 硬件基础：Apple Vision Pro 手部追踪能力
 
-用户明确要求使用 **动态时间规整 (DTW)** 算法来比较动作。虽然 DTW 是时间序列对齐的黄金标准，但标准的欧几里得实现对于高维、包含旋转属性的书法动作来说是不足的。我们提出一种鲁棒的、特定领域的变体：**四元数导数加权动态时间规整 (QD-DTW)**。
+### 2.1 手部追踪架构
 
-### 3.1 标准 DTW 的局限性分析
+Apple Vision Pro 利用自我中心摄像头和激光雷达 (LiDAR) 的传感器融合技术，重建手部的 26 个关节骨骼模型。本项目通过 ARKit 的 `HandTrackingProvider` API 获取实时手部追踪数据。
 
-标准 DTW 通过最小化匹配点之间的累积距离来对齐两个序列（$X$ 和 $Y$）：
+**项目中使用的核心追踪数据结构：**
 
+```swift
+struct HandJointPose: Codable, Sendable {
+    let name: String
+    let position: [Float]      // 世界坐标系下的 (x, y, z)
+    let orientation: [Float]   // 四元数表示的旋转 (x, y, z, w)
+}
 
+struct HandPoseFrame: Codable, Sendable {
+    let timestamp: TimeInterval
+    let leftJoints: [HandJointPose]
+    let rightJoints: [HandJointPose]
+}
+```
 
-$$D(X, Y) = \min \sum d(x_i, y_j)$$
+### 2.2 追踪数据获取
 
+项目通过 `HeartGestureModel` 和 `HandTrackingModel` 类管理 ARKit 会话和手部追踪更新：
 
+```swift
+@MainActor
+class HeartGestureModel: ObservableObject {
+    let session = ARKitSession()
+    var handTracking = HandTrackingProvider()
+    
+    func start() async {
+        if HandTrackingProvider.isSupported {
+            try await session.run([handTracking])
+        }
+    }
+    
+    func publishHandTrackingUpdates() async {
+        for await update in handTracking.anchorUpdates {
+            // 处理手部追踪更新
+        }
+    }
+}
+```
 
-如果 $x$ 和 $y$ 仅仅是简单的 3D 坐标矢量 $(x, y, z)$，该算法在书法应用中会忽略三个至关重要的因素：
+### 2.3 关节数据提取
 
-1. **方向性 (Orientation)**：一个笔画可能具有正确的轨迹，但笔锋角度（入锋角度）错误，这会完全改变笔画的宽度和纹理（即“中锋”与“侧锋”的区别） 11。
-2. **速度动力学 (Velocity Dynamics)**：两个笔画在空间上可能看起来相同，但一个是用犹豫、抖动的动作画出的，另一个是用自信的*气*（流动）画出的。标准 DTW 会扭曲时间轴来强行对齐它们，从而有效地“隐藏”了速度差异，而这种速度控制恰恰是学生练习中的主要错误来源 13。
-3. **解剖学独立性 (Anatomical Independence)**：标准 DTW 通常将手视为一个点或点云。在书法中，手腕负责手臂的大范围移动，而手指负责微调笔锋角度。这两者在评估中的权重应当不同 14。
+项目实现了从 `HandAnchor` 中提取所有关节姿态的辅助函数：
 
-### 3.2 提议的解决方案：四元数导数 DTW (QD-DTW)
-
-为了解决这些限制，比较算法必须在每个时间步 $t$ 对特征向量 $F_t$ 进行操作，该向量封装了书法动作的完整状态。
-
-#### 3.2.1 特征向量定义
-
-对于每一帧 $t$，我们需要提取以下特征：
-
-- **$P_t$ (位置)**：“虚拟笔尖”的 3D 坐标（通过食指/拇指质心外推得出）。
-- **$Q_t$ (方向)**：代表手相对于纸面旋转的四元数。
-- **$V_t$ (速度)**：位置的一阶导数 ($\Delta P$)。
-- **$A_t$ (加速度)**：位置的二阶导数 ($\Delta V$)。
-
-学生帧 $i$ 和老师帧 $j$ 之间的复合距离成本 $d(i, j)$ 定义为加权和：
-
-
-
-$$d(i, j) = w_p \|P_i - P_j\| + w_q (1 - |\langle Q_i, Q_j \rangle|) + w_v \|V_i - V_j\| + w_a \|A_i - A_j\|$$
-
-其中：
-
-- **空间误差**：$\|P_i - P_j\|$ 是欧几里得距离。
-- **方向误差**：$1 - |\langle Q_i, Q_j \rangle|$ 是四元数之间的测地线距离，用于衡量笔杆角度的差异 11。
-- **时机/力度误差**：$\|V_i - V_j\|$ 和 $\|A_i - A_j\|$ 是速度和加速度的大小差异。
-
-#### 3.2.2 用于力度估计的导数 DTW (DDTW)
-
-由于无法直接测量物理力，我们使用加速度作为代理变量（根据牛顿第二定律 $F=ma$）。通过将速度和加速度矢量纳入 DTW 成本函数（即 DDTW 方法） 13，算法可以惩罚那些不应该存在的“停顿和启动”。例如，如果老师的“撇”画是一个平滑的加速曲线，而学生的笔画虽然空间路径正确但速度恒定，标准 DTW 可能会给出低误差，但 DDTW 会报告高误差，因为*导数*（速度剖面的形状）不匹配。这对于教授书法的“骨力”（*颜筋柳骨*）至关重要。
-
-### 3.3 加权骨骼分析机制
-
-在书法中，并非所有关节都同等重要。手腕以及由拇指、食指和中指形成的“钳式”结构起主导作用，而无名指和小指则起到稳定作用（即抵的力）。
-
-我们采用 加权 DTW 14，其中成本函数通过权重系数大力优先考虑手腕和食指尖的锚点：
-
-- **手腕权重 ($W_{wrist}$)**：0.4（控制整体笔画形状和手臂运劲）。
-- **食指/拇指质心权重 ($W_{tip}$)**：0.5（控制笔锋角度和下压深度）。
-- **其他关节权重 ($W_{other}$)**：0.1（用于检查姿势是否过于紧张或僵硬）。
-
-这种加权机制确保了如果学生移动手臂的路径正确，但持笔角度懒散或错误，相似度得分会显著下降，从而提示其进行姿势矫正。
-
-------
-
-## 4. 领域建模：计算书法与虚拟毛笔动力学
-
-为了创建一个有效的“虚拟老师”，系统必须模拟中国毛笔的物理行为。简单的刚性圆柱体无法胜任；毛笔是一个复杂的软体，会发生变形、铺展和分叉。
-
-### 4.1 虚拟毛笔模型架构
-
-毛笔不应被建模为单一对象，而应建模为 **弹簧-质量系统 (Spring-Mass System)** 或 **离散弹性杆 (Discrete Elastic Rod)** 模型 18。
-
-- **笔脊 (Spine)**：代表毛笔簇主轴的一串中心粒子链。
-- **表面 (Surface)**：包裹笔脊的细分曲面，代表刷毛的外观。
-- **动力学 (Dynamics)**：当虚拟毛笔接触纸面（$Z=0$ 平面）时，粒子会受到排斥力（碰撞）和摩擦力。
-  - **笔锋滞后 ($r$)**：当手移动时，笔尖会拖在笔杆后面。这种滞后是毛笔刚度（如硬毫的狼毫与软毫的羊毫）和纸张摩擦力的函数 21。
-  - **铺展 ($b$)**：随着压力增加（Z 深度减小），垂直于笔脊的弹簧约束会放松，允许网格变宽。这模拟了用于书写粗线条的*按*（按压）技术。
-
-笔尖动力学的数学表示：
-
-设 $H_t$ 为笔杆位置（追踪到的手部位置），$T_t$ 为笔尖位置。
-
-笔尖跟随笔杆的运动由一个受弹簧常数 $k$ 和阻尼 $c$ 控制的延迟方程决定：
-
-
-
-$$m \ddot{T} + c \dot{T} + k(T - H) = F_{friction}$$
-
-
-
-这个方程必须在实时（物理步长）中求解，以生成“正确”的墨迹轨迹。如果用户用力按压，$F_{friction}$ 增加，导致滞后增加和足迹铺展 24。
-
-### 4.2 墨水扩散模拟
-
-书法的真实感来自于墨水（水/碳颗粒）与纸张（宣纸）的相互作用。墨水不应仅仅是“出现”，而应根据笔画的速度和压力进行扩散。
-
-- **慢速笔画**：墨水有时间渗开（毛细作用），形成更深、更宽且边缘柔和的效果（*涨墨*）。
-- **快速笔画**：墨水仅沉积在纸张表面的凸起处，形成“飞白”（*Fei Bai*）效果，即纸张纹理显露出来 25。
-
-**实现方案：** 这可以通过 Unity 或 RealityKit 中的 **计算着色器 (Compute Shader)** 来实现。纸张被建模为一个 2D 网格（纹理）。每个单元格包含湿度和墨水量值。细胞自动机或扩散方程根据局部湿度将墨水传播到相邻单元格 26。
-
-- *优化说明：* 在 AVP 上，同时运行完整的流体模拟和高精度手部追踪可能会使 M2 芯片过载。建议采用**局部扩散模型**（仅在笔尖附近处于活跃状态）以优化性能 28。
+```swift
+func extractJointPoses(from anchor: HandAnchor?) -> [HandJointPose] {
+    guard let anchor, anchor.isTracked, let skeleton = anchor.handSkeleton else { return [] }
+    
+    return HandSkeleton.JointName.allCases.compactMap { jointName in
+        let joint = skeleton.joint(jointName)
+        let worldTransform = matrix_multiply(
+            anchor.originFromAnchorTransform, 
+            joint.anchorFromJointTransform
+        )
+        return HandJointPose(name: String(describing: jointName), transform: worldTransform)
+    }
+}
+```
 
 ------
 
-## 5. 交互设计：虚拟师父的教学法
+## 3. 功能模块实现
 
-核心价值主张在于技能的*转移*。系统如何将 DTW 算法计算出的误差传达给用户，从而有效地诱导学习？
+### 3.1 记录模块 (Recording)
 
-### 5.1 视觉反馈策略
+**功能描述：** 实时采集用户手部姿态数据，支持开始/停止录制，并将数据持久化保存。
 
-- **重影手 (Ghost Hand) - 第三人称与第一人称的权衡：**
-  - *观察模式*：用户观看大师书写字符的半透明“重影手”。这激活了镜像神经元，但不能直接训练本体感觉 29。
-  - *自我中心叠加*：用户看到重影手*叠加*在自己的手上。这很强大，但可能会因为遮挡而造成视觉混淆。
-  - **“隧道”可视化 (Tunnel Visualization)**：相比于显示手，显示一个代表笔画空间容差的 **3D 隧道** 或“管道”更为有效 31。用户必须保持笔尖在管道内。管道的颜色根据 DTW 误差实时变化（绿 $\to$ 红）。
-  - **可视化“无形”之力**：在书法中，笔画之间的*空中回锋*（笔离开纸面后的运动）对于保持*气*的连贯性至关重要。系统应将这些空中轨迹可视化为微弱的发光线，教导学生即使在笔离开纸面时，运动也是连续不断的 33。
+**核心实现类：** `HandCaptureManager`
 
-### 5.2 听觉生物反馈 (Sonification)
+```swift
+@MainActor
+final class HandCaptureManager: ObservableObject {
+    @Published private(set) var isRecording = false
+    @Published private(set) var recordingElapsedTime: TimeInterval = 0
+    
+    private var frames: [HandPoseFrame] = []
+    private var recordingStart: TimeInterval = 0
+    
+    func startRecording() {
+        frames.removeAll()
+        recordingStart = CACurrentMediaTime()
+        isRecording = true
+    }
+    
+    func captureFrame(leftJoints: [HandJointPose], rightJoints: [HandJointPose]) {
+        guard isRecording else { return }
+        let timestamp = CACurrentMediaTime() - recordingStart
+        let frame = HandPoseFrame(timestamp: timestamp, leftJoints: leftJoints, rightJoints: rightJoints)
+        frames.append(frame)
+    }
+    
+    func saveRecording() async {
+        let recording = HandPoseRecording(frames: frames)
+        let data = try encoder.encode(recording)
+        let filename = "HandPose_\(dateString).json"
+        try data.write(to: documentsDirectory.appendingPathComponent(filename))
+    }
+}
+```
 
-由于用户无法*感觉*到纸张的物理摩擦，他们往往移动得太快。听觉反馈可以替代触觉感知 34。
+**数据存储格式：** JSON 文件，包含版本号、创建时间和帧序列：
 
-- **摩擦声音化**：将笔尖的速度映射到“刮擦”声（由速度过滤的白噪声）的音高/音量。
-  - 高速度 $\to$ 较高的音高，较高的音量（快速扫过的声音）。
-  - 低速度 $\to$ 较低的音高，低沉的隆隆声（重压的声音）。
-- **误差声音化**：如果用户偏离大师的轨迹（高 DTW 距离），引入不和谐的音调或“张力”声音。这允许用户在不把视线从笔尖移开的情况下纠正路径 36。这种“听觉误差场”创造了一条引导手部运动的声音隧道。
+```json
+{
+    "version": 1,
+    "createdAt": "2025-01-01T00:00:00Z",
+    "samples": [
+        {
+            "timestamp": 0.0,
+            "leftJoints": [...],
+            "rightJoints": [...]
+        }
+    ]
+}
+```
 
-### 5.3 “记录-回放-比较-练习”闭环设计
+### 3.2 回放模块 (Playback)
 
-1. **记录 (Record)**：老师（或用户）书写一个字符。系统以 90Hz 记录 26 关节骨骼数据 + 衍生的笔尖物理数据。关键元数据（如提、按、顿、挫）的时间点被标记。
-2. **回放 (Replay)**：用户观看大师的笔画。时间轴可以拖动。速度可以降低到 0.5 倍，以分析笔刷的*顿*（转向）动作。系统提供 3D 视角，允许用户从侧面或下方观察笔锋的角度。
-3. **练习 (Practice/Shadowing)**：用户跟随回放进行书写。系统计算实时 DTW。此时启用“隧道”可视化和听觉反馈。
-4. **比较 (Compare - 行动后审查)**：系统并排（或叠加）显示两个笔画。
-   - **热力图可视化**：高误差的段落被染成红色。
-   - **参数分解**：展示“你的速度 vs 大师速度”和“你的压力 vs 大师压力”的图表 38。这种分析视图帮助学生理解*为什么*他们的笔画看起来不对（例如，“你提笔太早了”或“转折处没有顿笔”）。
+**功能描述：** 加载已保存的手部姿态数据，按时间戳同步播放，支持暂停/继续/停止控制。
+
+**核心实现：**
+
+```swift
+func beginPlayback(with recording: HandPoseRecording) {
+    isPlayingBack = true
+    let frames = recording.frames
+    
+    playbackTask = Task {
+        guard let baseTime = frames.first?.timestamp else { return }
+        let startWallClock = CACurrentMediaTime()
+        
+        for frame in frames {
+            let elapsed = CACurrentMediaTime() - startWallClock
+            let target = frame.timestamp - baseTime
+            
+            if target > elapsed {
+                try await Task.sleep(nanoseconds: UInt64((target - elapsed) * 1_000_000_000))
+            }
+            
+            self.currentPlaybackFrame = frame
+            self.playbackElapsedTime = frame.timestamp
+        }
+    }
+}
+```
+
+**手部可视化：** 使用 `HandVisualization` 类渲染手部关节和骨骼连接：
+
+```swift
+class HandVisualization {
+    private var jointEntities: [String: ModelEntity] = [:]
+    private var boneEntities: [String: ModelEntity] = [:]
+    let rootEntity: Entity
+    
+    func update(with joints: [HandJointPose]) {
+        // 更新关节球体位置
+        for joint in joints {
+            let entity = getOrCreateJointEntity(named: joint.name)
+            entity.setTransformMatrix(joint.transformMatrix, relativeTo: nil)
+        }
+        
+        // 更新骨骼连接（圆柱体）
+        for connection in HandBoneConnection.allConnections {
+            updateBoneTransform(from: startJoint.position, to: endJoint.position)
+        }
+    }
+}
+```
+
+### 3.3 比较模块 (Comparison)
+
+**功能描述：** 加载两份录制数据（教练 vs 学员），计算动作相似度分数。
+
+**核心实现类：** `CalligraphyComparisonViewModel`
+
+**相似度计算算法：**
+
+项目采用基于关节位置欧几里得距离的简化相似度算法：
+
+```swift
+private func calculateSimilarity(coach: HandPoseRecording, user: HandPoseRecording, mode: HandComparisonMode) -> Float {
+    let sampleCount = 100  // 归一化为 100 帧
+    var totalDistance: Float = 0.0
+    
+    for i in 0..<sampleCount {
+        let t = Double(i) / Double(sampleCount - 1)
+        
+        let coachFrame = sampleFrame(recording: coach, at: t, range: coachTrimRange)
+        let userFrame = sampleFrame(recording: user, at: t, range: userTrimRange)
+        
+        let coachJoints = getRelevantJoints(frame: coachFrame, isCoach: true, mode: mode)
+        let userJoints = getRelevantJoints(frame: userFrame, isCoach: false, mode: mode)
+        
+        totalDistance += calculateFrameDistance(coachJoints: coachJoints, userJoints: userJoints)
+    }
+    
+    let averageDistance = totalDistance / Float(sampleCount)
+    let similarity = max(0, 1.0 - (averageDistance * 5.0))
+    return similarity
+}
+```
+
+**帧间距离计算：**
+
+```swift
+private func calculateFrameDistance(coachJoints: [HandJointPose], userJoints: [HandJointPose]) -> Float {
+    // 以手腕位置为基准归一化
+    guard let coachWrist = coachJoints.first(where: { $0.name == "wrist" }),
+          let userWrist = userJoints.first(where: { $0.name == "wrist" }) else { return 1.0 }
+    
+    var distance: Float = 0.0
+    var count: Float = 0.0
+    
+    // 重点比较指尖关节
+    for jointName in ["thumbTip", "indexFingerTip", "middleFingerTip", "ringFingerTip"] {
+        if let cJoint = coachJoints.first(where: { $0.name == jointName }),
+           let uJoint = userJoints.first(where: { $0.name == jointName }) {
+            
+            let cPos = cJoint.positionVector - coachWristPos
+            let uPos = uJoint.positionVector - userWristPos
+            let d = simd_distance(cPos, uPos)
+            
+            // 权重：拇指、食指、中指 > 无名指
+            let weight: Float = jointName.contains("ring") ? 0.5 : 1.0
+            distance += d * weight
+            count += weight
+        }
+    }
+    
+    return count > 0 ? distance / count : 1.0
+}
+```
+
+**比较模式支持：**
+
+```swift
+enum HandComparisonMode: String, CaseIterable {
+    case rightToRight = "Right vs Right"
+    case leftToLeft = "Left vs Left"
+    case rightToLeft = "Right vs Left (Mirror)"
+}
+```
+
+**裁剪功能：** 支持对教练和学员录制数据进行时间范围裁剪，以对齐关键动作段落。
 
 ------
 
-## 6. 技术实现策略：Unity PolySpatial vs. Native RealityKit
+## 4. 系统架构
 
-针对本项目，推荐使用 **Unity PolySpatial** 架构，而非原生的 RealityKit/Swift 40。
+### 4.1 技术栈
 
-### 6.1 平台选择理由
+| 组件       | 技术选型                   | 说明                                 |
+| ---------- | -------------------------- | ------------------------------------ |
+| 平台       | visionOS 2.0+              | Apple Vision Pro 原生平台            |
+| UI 框架    | SwiftUI                    | 声明式 UI 构建                       |
+| 3D 渲染    | RealityKit                 | 空间渲染和实体管理                   |
+| 手部追踪   | ARKit (HandTrackingProvider)| 26 关节骨骼追踪                      |
+| 数据持久化 | JSON + FileManager         | 录制数据序列化存储                   |
+| 开发语言   | Swift 5.9+                 | 类型安全的并发编程                   |
 
-下表对比了两种技术栈在本项目中的适用性：
+### 4.2 项目结构
 
-| **特性**     | **Unity PolySpatial**          | **Native RealityKit**                 | **推荐理由**                                                 |
-| ------------ | ------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
-| **物理引擎** | 强大 (PhysX, Obi Cloth 等插件) | 基础 (Havok 集成，但软体支持弱)       | 书法笔刷需要复杂的软体/绳索物理模拟，Unity 资产商店有现成的高质量解决方案 42。 |
-| **算法库**   | 丰富 (C# Math.NET, Accord.NET) | 较少 (需自行实现或用 Accelerate 框架) | C# 拥有成熟的数学库，便于快速实现和调试复杂的 QD-DTW 算法。  |
-| **跨平台性** | 高 (可移植至 Quest 3)          | 无 (仅限 Apple 生态)                  | 考虑到未来可能扩展到其他 XR 平台，Unity 提供了更好的灵活性。 |
-| **开发效率** | 高 (编辑器实时预览)            | 中 (Xcode 预览较慢)                   | Unity 的编辑器允许在非 VR 模式下快速调试逻辑和物理效果。     |
+```
+AR/
+├── HappyBeam/                      # 主应用
+│   ├── HappyBeamApp.swift          # 应用入口
+│   ├── GameModel.swift             # 全局状态管理
+│   ├── HappyBeamSpace.swift        # 沉浸式空间主视图
+│   ├── Gameplay/
+│   │   ├── HandCaptureManager.swift    # 录制/回放管理
+│   │   ├── HandPoseData.swift          # 数据模型定义
+│   │   ├── HandVisualization.swift     # 手部可视化渲染
+│   │   ├── HeartGestureModel.swift     # 手势追踪模型
+│   │   └── CalligraphyComparisonViewModel.swift  # 比较逻辑
+│   └── Views/
+│       ├── Start.swift                 # 启动界面
+│       ├── SoloPlay.swift              # 单人模式控制界面
+│       └── CalligraphyComparisonView.swift  # 比较模式界面
+│
+├── ARCoach_demo/                   # 演示应用（简化版）
+│   ├── ARCoach_demoApp.swift
+│   ├── HandTrackingModel.swift
+│   ├── ImmersiveView.swift
+│   └── ...
+│
+└── Packages/
+    ├── RealityKitContent/          # RealityKit 资源
+    └── HappyBeamAssets/            # 游戏资源
+```
 
+### 4.3 数据流
 
-
-### 6.2 架构设计 (概念模型)
-
-1. **输入层 (Input Layer)**：
-   - `XRHandSubsystem` (Unity)：轮询关节数据。
-   - `KinematicFilter`：应用卡尔曼滤波 (Kalman Filter) 以平滑抖动，同时保留书法的有意顿挫。
-2. **模拟层 (Simulation Layer)**：
-   - `VirtualBrushController`：计算笔尖物理（弹簧-质量模型）。
-   - `InkCanvas`：计算着色器，处理纹理扩散和飞白效果。
-3. **分析层 (Analysis Layer)**：
-   - `MotionRecorder`：将骨骼帧序列化为 JSON/Binary 格式。
-   - `DTWComparator`：利用 Unity 的 C# Job System 在后台线程运行 QD-DTW，防止掉帧。
-4. **表现层 (Presentation Layer)**：
-   - `FeedbackManager`：控制音频合成（Procedural Audio）和视觉叠加（隧道/重影）。
-
-### 6.3 性能优化策略
-
-M2 芯片虽然强大，但在处理物理模拟和高频追踪时仍面临热节流风险。
-
-- **预计算 (Baking)**：对于老师的示范笔画，预先计算好网格变形和墨水扩散贴图，练习时只实时模拟用户的笔刷 28。
-- **笔触渲染**：使用 `LineRenderer` 或带自定义着色器的 `TrailRenderer` 来绘制墨迹，而不是生成数百万个粒子 45。
-- **ECS/DOTS**：利用 Unity 的面向数据技术栈 (DOTS) 来处理大量的弹簧-质量粒子更新，确保笔刷物理计算极快。
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     visionOS / ARKit                            │
+│  HandTrackingProvider → HandAnchor → HandSkeleton (26 joints)   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   HeartGestureModel                             │
+│  - 启动 ARKitSession                                            │
+│  - 订阅 anchorUpdates                                           │
+│  - 发布 latestHandTracking (左右手 HandAnchor)                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   HappyBeamSpace (主视图)                       │
+│  - extractJointPoses() 提取关节数据                             │
+│  - 根据 soloGameMode 分发到不同处理逻辑                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  Recording 模式  │  │  Playback 模式  │  │  Normal 模式    │
+│  captureFrame() │  │  beginPlayback()│  │  游戏逻辑       │
+│  saveRecording()│  │  pausePlayback()│  │                 │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+          │                   │
+          ▼                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  HandVisualization                              │
+│  - 创建关节球体 (ModelEntity)                                   │
+│  - 创建骨骼连接 (圆柱体)                                        │
+│  - 实时更新位置/旋转                                            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ------
 
-## 7. 挑战与深度分析
+## 5. 用户界面
 
-### 7.1 “空中书写”的疲劳与不稳定性
+### 5.1 启动界面 (Start View)
 
-长时间在半空中悬空手部会导致“大猩猩手臂效应” (Gorilla Arm Effect)，即肌肉疲劳。更重要的是，缺乏物理表面的阻力使得控制笔尖高度（Z轴）极其困难，难以训练*按*（下压）的力度。
+提供三个主要入口：
+- **Recording Mode**：进入手部姿态录制模式
+- **Playback Mode**：选择已保存的录制文件进行回放
+- **Calligraphy Comparison**：进入书法比较界面
 
-- **缓解方案**：系统应支持 **透视锚定 (Passthrough Anchoring)**。用户坐在真实的物理桌子前。系统校准虚拟纸张的 $Z=0$ 平面与物理桌面重合。用户在真实的桌面上书写。这提供了*被动触觉反馈*——当用户向下按压时，他们能感觉到桌子的阻力，这对于训练*按*的技巧至关重要 46。
+### 5.2 录制模式控制界面
 
-### 7.2 风格的主观性与算法的局限
+```
+┌──────────────────────────────┐
+│  ○ Recording                 │
+│                              │
+│       00:05.3                │
+│      recording               │
+│                              │
+│  🔇  ⏺  💾  🗑              │
+│      Start/Stop  Save  Discard│
+└──────────────────────────────┘
+```
 
-将动作与单一的“大师”记录文件进行比对，假设了只有一种正确的书写方式。然而书法有多种流派（颜、欧、柳、赵）。
+### 5.3 回放模式控制界面
 
-- **解决方案**：DTW 算法需要一个“容差走廊”。不要只使用单一参考线，而是从专家对同一字符的*多次*录制中推导出统计模型（如高斯混合模型 GMM），创建一个“安全区”。只要学生落在各种有效变体的统计分布内，即判定为正确 47。
+```
+┌──────────────────────────────┐
+│  ▶ Playing                   │
+│                              │
+│       00:03.2                │
+│       / 00:10                │
+│      playing                 │
+│                              │
+│      ▶/⏸    ⏹               │
+│     Play/Pause  Stop         │
+└──────────────────────────────┘
+```
 
-### 7.3 审美评分（“神”的量化）
+### 5.4 书法比较界面
 
-DTW 测量的是运动学相似性，而非审美上的美感。一个笔画可能在轨迹上完全对齐，但看起来却“死板”无力。
+- 教练录制文件选择
+- 学员录制文件选择
+- 比较模式选择（右手 vs 右手、左手 vs 左手、镜像比较）
+- 时间范围裁剪滑块
+- 相似度分数显示
+- 3D 可视化对比（支持拖拽旋转视角）
+- 同步回放控制
 
-- **高级洞察**：集成一个 **图像质量评估 (IQA)** 模块，使用在书法数据集上训练的卷积神经网络 (CNN) 48。最终评分应该是 **运动学评分**（DTW：你的动作对吗？）和 **审美评分**（CNN：字看起来美吗？）的加权平均。
+------
+
+## 6. 手势识别附加功能
+
+### 6.1 爱心手势检测
+
+项目还实现了双手组合"爱心"手势的检测，用于游戏交互：
+
+```swift
+func computeTransformOfUserPerformedHeartGesture() -> simd_float4x4? {
+    // 获取双手关键关节
+    guard let leftThumbTip = leftHand.thumbTip,
+          let leftIndexTip = leftHand.indexFingerTip,
+          let rightThumbTip = rightHand.thumbTip,
+          let rightIndexTip = rightHand.indexFingerTip else {
+        return nil
+    }
+    
+    // 计算指尖距离
+    let indexFingersDistance = distance(leftIndexTip, rightIndexTip)
+    let thumbsDistance = distance(leftThumbTip, rightThumbTip)
+    
+    // 距离阈值判定（< 4cm 视为接触）
+    let isHeartShapeGesture = indexFingersDistance < 0.04 && thumbsDistance < 0.04
+    
+    if isHeartShapeGesture {
+        // 返回手势中心点的变换矩阵
+        return heartMidpointWorldTransform
+    }
+    return nil
+}
+```
+
+------
+
+## 7. 当前实现与未来扩展
+
+### 7.1 已实现功能
+
+| 功能模块         | 状态   | 说明                                             |
+| ---------------- | ------ | ------------------------------------------------ |
+| 手部追踪数据获取 | ✅ 完成 | 26 关节骨骼数据实时采集                          |
+| 手部姿态录制     | ✅ 完成 | JSON 格式持久化存储                              |
+| 手部姿态回放     | ✅ 完成 | 时间同步回放，支持暂停/继续                      |
+| 手部可视化       | ✅ 完成 | 关节球体 + 骨骼连接线渲染                        |
+| 动作比较         | ✅ 完成 | 基于欧几里得距离的相似度计算                     |
+| 比较可视化       | ✅ 完成 | 双手叠加显示，支持旋转视角                       |
+| 录制裁剪         | ✅ 完成 | 时间范围选择器                                   |
+| 多种比较模式     | ✅ 完成 | 右右、左左、镜像比较                             |
+
+### 7.2 未来扩展方向
+
+| 功能模块              | 状态     | 描述                                               |
+| --------------------- | -------- | -------------------------------------------------- |
+| 实时练习模式 (Practice) | 🔲 待开发 | 实时对比用户动作与教练模板，提供即时反馈           |
+| 高级 DTW 算法         | 🔲 待开发 | 动态时间规整算法，处理不同速度的动作对齐           |
+| 四元数旋转比较        | 🔲 待开发 | 在距离计算中加入关节旋转因素                       |
+| 速度/加速度分析       | 🔲 待开发 | 分析动作的力度和节奏特征                           |
+| 虚拟毛笔模拟          | 🔲 待开发 | 基于手部姿态模拟毛笔笔触                           |
+| 墨迹渲染              | 🔲 待开发 | 根据压力和速度生成虚拟墨迹                         |
+| 视觉/听觉反馈         | 🔲 待开发 | 通过颜色、声音等方式提供动作指导                   |
+| 3D 轨迹"隧道"可视化  | 🔲 待开发 | 显示动作容差范围的立体轨迹                         |
 
 ------
 
 ## 8. 结论
 
-提议的 AR 手部动作教练代表了 Apple Vision Pro 功能的高价值应用。通过超越简单的手势识别，进入 **运动学真实性 (Kinematic Authenticity)** 的领域——即使用四元数导数 DTW 和基于物理的笔刷模拟——该项目能够弥合数字便利性与传统书法身心深度之间的鸿沟。
+本项目成功验证了 Apple Vision Pro 手部追踪技术在书法动作教学场景下的可行性。通过实现"记录-回放-比较"功能闭环，系统能够：
 
-该项目的成功将取决于两个实施细节：
+1. **捕获**高精度的手部运动数据（26 关节骨骼追踪）
+2. **存储**完整的动作序列用于后续分析
+3. **重现**已录制的动作供学习者观察
+4. **评估**学员动作与教练动作的相似程度
 
-1. **延迟补偿**：确保虚拟墨水的流动直接源自用户的本体感觉位置，而非滞后的视觉反馈。
-2. **感官替代**：利用音频和视觉提示来填补笔刷与纸张摩擦力的缺失。
+当前实现采用原生 visionOS 技术栈（RealityKit + SwiftUI + ARKit），具有良好的性能和系统集成度。项目架构设计为未来扩展实时练习模式、高级算法分析和多感官反馈机制奠定了基础。
 
-该系统不仅是一个教学工具，更是无形文化遗产保护的新范式：书法不再仅仅作为视频被记录，而是作为数据驱动的、可回放的运动体验被捕捉，让后代能够从物理上“穿戴”大师的动作进行学习。
-
-------
-
-## 9. 详细研究报告展开
-
-### 9.1 引言
-
-运动技能的保存和传递历来依赖于“师徒”模式，这是一种高带宽、依赖近距离接触的指导方法。在中国书法领域，这种传递尤为微妙，不仅涉及字符的形状（*形*），还涉及笔法的节奏、力度和精神（*神*）。Apple Vision Pro (AVP) 凭借其先进的空间追踪和高保真透视功能，为这种传递的数字化提供了独特的机会。本报告详细阐述了构建 AR 手部动作教练所需的架构、算法和教学策略，利用 AVP 通过“记录、回放、比较、练习”循环来教授书法。
-
-### 9.2 硬件能力与限制：作为身体传感器的 Vision Pro
-
-#### 9.2.1 手部追踪架构
-
-AVP 的 `HandTrackingProvider` 提供 26 关节骨骼模型 1。对于书法，关键关节是 **手腕**、**拇指 (Tip, IP, MP, CMC)**、**食指 (Tip, Distal, Intermediate, Knuckle)** 和 **中指 (Tip)**。这些关节形成了控制毛笔所必需的“三指”握法。
-
-- **精度**：系统拥有亚毫米级精度（0.8mm 方差）3，这足以检测手臂的大范围运动（*运笔*）和手指的精细操作（*捻管*）。
-- **频率**：虽然显示器运行在 90Hz-100Hz，手部追踪的轮询率历史上受限于光照条件。然而，visionOS 的更新允许与显示刷新同步的更高频率更新，最大限度地减少快速笔画回放中的“卡顿” 5。
-
-#### 9.2.2 延迟挑战
-
-书法涉及弹道运动。例如“钩”(*Gou*) 的笔画需要快速的挑动。由于光子到运动的延迟约为 128ms 4，虚拟墨迹轨迹可能会滞后于用户感知的实际手部位置。
-
-- **影响**：如果墨水滞后，用户会本能地放慢速度“等待”笔刷，从而破坏书法的自然节奏。
-- **缓解策略**：应用程序必须实施 **航位推算 (Dead Reckoning)** 或 **卡尔曼滤波**，根据当前的加速度预测未来 3-4 帧的手部位置，将笔尖渲染在手部*将要到达*的位置，从而有效地掩盖硬件延迟 6。
-
-#### 9.2.3 遮挡与深度感知
-
-AVP 的深度传感器主动对环境进行网格化。当用户持有虚拟毛笔时，系统必须正确地将毛笔渲染在手指*后方*但在手掌*前方*。标准的遮挡处理效果良好，但在教学中存在“自遮挡”问题（即手挡住了正在书写的字符）。
-
-- **设计模式**：实施“X 射线模式”或“偏移光标” 50，其中墨水显示在手指遮挡区域稍微上方，或者在*回放*阶段将手渲染为半透明，以允许学生看到握笔姿势下方的笔画结构。
-
-### 9.3 算法核心：基于 DTW 的动作比较
-
-用户要求使用 **动态时间规整 (DTW)** 是理论上合理的，但这需要针对 3D 书法进行特定的调整。
-
-#### 9.3.1 为什么标准 DTW 会失败
-
-标准欧几里得 DTW 测量空间中两点之间的距离。然而，在书法中，用垂直持笔（*中锋*）书写的笔画与倾斜持笔（*侧锋*）书写的笔画有着根本的不同，即使笔尖遵循完全相同的路径。欧几里得 DTW 忽略了这种旋转数据 52。
-
-#### 9.3.2 四元数导数 DTW (QD-DTW)
-
-我们推荐一种混合算法，同时比较三个不同的数据流：
-
-1. **空间流 ($S_p$)**：笔尖的 3D 坐标。
-2. **旋转流 ($S_r$)**：手部锚点的四元数方向。比较四元数需要将其映射到对数图或使用测地线距离 ($d = 1 - |\langle q1, q2 \rangle|$) 11。
-3. **运动学流 ($S_k$)**：笔画的*速度剖面*。
-
-**算法逻辑伪代码：**
-
-Python
-
-```
-# QD-DTW 成本函数伪代码
-def cost(teacher_frame, student_frame):
-    dist_pos = Euclidean(teacher_frame.pos, student_frame.pos)
-    dist_rot = QuaternionDistance(teacher_frame.rot, student_frame.rot)
-    # 导数项：比较速度大小，捕捉节奏差异
-    dist_vel = abs(teacher_frame.velocity - student_frame.velocity)
-    
-    # 权重由教学重点决定
-    # 对于“结构”练习：位置权重较高
-    # 对于“神韵”练习：速度/旋转权重较高
-    return (w1 * dist_pos) + (w2 * dist_rot) + (w3 * dist_vel)
-```
-
-这种多维方法 53 确保系统不仅批评书写的*结果*，还批评书写的*方式*。
-
-#### 9.3.3 评分与归一化
-
-- **空间归一化**：用户的手臂长度不同。在处理之前，必须对两条轨迹进行归一化：以原点 (0,0,0) 为中心，并缩放以使字符的边界框匹配 15。
-- **分数解释**：原始 DTW 距离是一个任意数字。必须使用指数衰减函数将其转换为百分比分数：$Score = 100 * e^{(-k \cdot DTW\_Distance)}$。这提供了一个用户友好的“95% 匹配度”指标 54。
-
-### 9.4 书法模拟：物理与美学
-
-#### 9.4.1 虚拟毛笔
-
-在移动硬件（AVP M2 芯片）上模拟毛笔需要在真实感和性能之间取得平衡。
-
-- **圆锥模型**：过于简单；无法模拟毛笔分叉。
-- **弹簧-质量模型**：黄金标准 18。笔尖是由连接到手柄的弹簧连接的“股线”（粒子）集合。
-  - **逻辑**：当手柄移动时，股线拖在后面（模拟软毛）。当压在 Z 平面（纸）上时，股线向外扩散。
-  - **数据驱动调优**：可以调整“刚度”和“阻尼”等参数来模拟不同的毛笔（例如，硬挺的狼毫 vs 柔软的羊毫） 55。
-
-#### 9.4.2 墨水扩散
-
-墨水扩散的计算成本很高。
-
-- **推荐**：使用 **纹理空间扩散**。不使用流体模拟，而是使用一个着色器，根据毛笔的“湿度”和纸张的“吸水性”，随着时间推移将墨水纹理“模糊”到纸张纹理贴图中 25。这完全在 GPU 上运行，释放 CPU 用于繁重的追踪和 DTW 计算。
-
-### 9.5 教学功能：练习循环
-
-#### 9.5.1 记录（大师输入）
-
-- **捕捉**：以 90Hz 记录。不仅存储原始数据，还存储“元数据”事件：*落笔*、*提笔*、*停顿*。
-- **注释**：允许老师在 3D 空间中注释录音，绘制“力线”以显示施加压力的位置。
-
-#### 9.5.2 回放（观察阶段）
-
-- **3D 擦除**：用户可以旋转录音，从侧面或下方（现实生活中不可能的角度）查看手部角度。
-- **重影手**：将老师的手渲染为半透明网格。
-- **焦点高亮**：根据压力对笔尖进行颜色编码（蓝色=轻，红色=重），以可视化不可见的力动力学 57。
-
-#### 9.5.3 练习（主动阶段）
-
-- **引导隧道**：在大师路径周围生成一个 3D“管道”。如果学生保持在内部，墨水流动顺畅。如果离开，墨水会干涸或变色 31。
-- **声音化**：这是一个关键见解。使用声音来传达速度。低音调的嗡嗡声随着速度增加音高，帮助学生内化笔画的节奏（*渐慢*和*渐快*） 34。 “噼啪”声可以指示抖动或犹豫错误 58。
-
-#### 9.5.4 比较（反馈阶段）
-
-- **叠加视图**：将学生笔画（红色）显示在大师笔画（黑色）之上。
-- **矢量场可视化**：绘制连接学生路径和大师路径的小箭头，显示偏差方向。
-- **组件分析**：“你的形状 90% 正确，但节奏只有 40% 正确。”这将*颜*（形式）与*神*（精神）区分开来。
-
-### 9.6 技术栈推荐
-
-| **组件**     | **推荐**                   | **理由**                                                     |
-| ------------ | -------------------------- | ------------------------------------------------------------ |
-| **引擎**     | **Unity (PolySpatial)**    | 访问丰富的物理资产 (Obi Cloth/Ropes) 和强大的 C# 数学库用于 DTW 40。 |
-| **追踪**     | **ARKit / XR Hands**       | 原生 Apple 追踪是唯一选择；通过 Unity 的 XR Hands 包访问。   |
-| **物理**     | **自定义 Verlet 积分**     | 内置 PhysX 对于毛发模拟来说太重/太刚性。为笔尖股线编写自定义 Verlet 求解器。 |
-| **渲染**     | **Shader Graph / Compute** | 使用 Compute Shaders 进行墨水扩散，利用 M2 GPU 效率。        |
-| **数据格式** | **JSON / Binary**          | 将笔画数据存储为序列化数组 `struct { Vector3 pos; Quaternion rot; float pressure; float time; }`。 |
-
-
-
-### 9.7 结论与未来展望
-
-用于书法的“AR 手部动作教练”是 Apple Vision Pro 功能的一项技术上可行且具有教学前景的应用。通过结合高频骨骼追踪和专门的 **四元数导数 DTW** 算法，该系统可以客观地量化微妙的笔法艺术。主要的障碍是触觉反馈的缺失，这必须通过 **视觉触觉**（笔刷变形）和 **听觉生物反馈**（速度声音化）来积极补偿。
-
-该系统为一种新型的“保护技术”奠定了基础，在这种技术中，非物质文化遗产不仅被记录为视频，而且被捕捉为数据驱动的、可回放的运动体验，未来的世代可以物理地栖息其中并从中学习。
+本系统为书法等精细运动技能的数字化教学提供了新的可能性，也为非物质文化遗产的保护与传承探索了创新路径——将传统技艺以数据驱动、可交互的方式进行记录和传播。
