@@ -48,19 +48,25 @@ class HandVisualization {
     /// Updates the visualization with new joint poses.
     /// When interpolateMissing is true, uses last known positions for missing joints.
     func update(with joints: [HandJointPose], interpolateMissing: Bool = false) {
+        // If joints are empty, hide everything and return
         guard !joints.isEmpty else {
-            // Hide all entities when no joints are detected
             rootEntity.isEnabled = false
-            for entity in jointEntities.values {
-                entity.isEnabled = false
-            }
-            for entity in boneEntities.values {
-                entity.isEnabled = false
-            }
             return
         }
         
         rootEntity.isEnabled = true
+        
+        // Hide all existing entities first to avoid "ghosts" from previous frames
+        // if the new frame has fewer joints.
+        // Optimization: Instead of iterating all, we could track active ones,
+        // but for safety let's ensure we only show what's in the current frame.
+        for entity in jointEntities.values {
+            entity.isEnabled = false
+        }
+        for entity in boneEntities.values {
+            entity.isEnabled = false
+        }
+        
         var activeJointNames = Set<String>()
         var activeBoneNames = Set<String>()
         

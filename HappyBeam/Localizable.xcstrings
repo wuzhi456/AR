@@ -1663,9 +1663,6 @@
         }
       }
     },
-    "Pause Playback" : {
-
-    },
     "Pause Practice" : {
 
     },
@@ -1852,9 +1849,6 @@
     "Playback Time" : {
 
     },
-    "playing" : {
-
-    },
     "Practice Hand" : {
 
     },
@@ -2006,9 +2000,6 @@
 
     },
     "Similarity Score" : {
-
-    },
-    "Start Playback" : {
 
     },
     "Start Practice" : {

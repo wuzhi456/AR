@@ -37,6 +37,16 @@ struct HappyBeamSpace: View {
     // Keep track of ghost playback frame; mutate on main actor to avoid missed SwiftUI updates.
     @State private var practiceGhostFrameIndex: Int = 0
     
+    // Playback transformation state
+    @State private var playbackRootEntity = Entity()
+    @State private var playbackScale: Float = 1.0
+    @State private var playbackPosition: SIMD3<Float> = .zero
+    @State private var playbackEulerAngles: SIMD3<Float> = .zero // Pitch, Yaw, Roll
+    
+    @State private var basePlaybackScale: Float = 1.0
+    @State private var basePlaybackPosition: SIMD3<Float> = .zero
+    @State private var basePlaybackEulerAngles: SIMD3<Float> = .zero
+    
     // Recording/playback management
     @StateObject private var captureManager = HandCaptureManager()
     
@@ -45,6 +55,7 @@ struct HappyBeamSpace: View {
     var body: some View {
         realityViewContent
             .gesture(dragGesture)
+            .gesture(playbackGestures)
             .modifier(TasksModifier(
                 gestureModel: gestureModel,
                 handleGameModeStart: handleGameModeStart
@@ -161,7 +172,7 @@ struct HappyBeamSpace: View {
             }
             
             let shouldShowBeam = handsCenterTransform != nil
-            if !gameModel.isPaused && gameModel.isPlaying {
+            if !gameModel.isPaused && gameModel.isPlaying && gameModel.soloGameMode == .normal {
                 if shouldShowBeam {
                     if isShowingBeam == false {
                         beamIntermediate.addChild(beam)
@@ -231,6 +242,48 @@ struct HappyBeamSpace: View {
                 endBlasterBeam()
             }
     }
+
+    private var playbackGestures: some Gesture {
+        SimultaneousGesture(
+            MagnificationGesture()
+                .onChanged { value in
+                    guard gameModel.soloGameMode == .playback else { return }
+                    let newScale = basePlaybackScale * Float(value)
+                    playbackScale = max(0.1, min(newScale, 10.0))
+                    updatePlaybackTransform()
+                }
+                .onEnded { _ in
+                    basePlaybackScale = playbackScale
+                },
+            DragGesture()
+                .onChanged { value in
+                    guard gameModel.soloGameMode == .playback else { return }
+                    // Map drag to rotation (Single hand interaction)
+                    let sensitivity: Float = 0.5 // Degrees per point
+                    let deltaYaw = Float(value.translation.width) * sensitivity
+                    let deltaPitch = Float(value.translation.height) * sensitivity
+                    
+                    let newYaw = basePlaybackEulerAngles.y + deltaYaw
+                    let newPitch = basePlaybackEulerAngles.x + deltaPitch
+                    
+                    playbackEulerAngles = SIMD3<Float>(newPitch, newYaw, 0)
+                    updatePlaybackTransform()
+                }
+                .onEnded { _ in
+                    basePlaybackEulerAngles = playbackEulerAngles
+                }
+        )
+    }
+    
+    private func updatePlaybackTransform() {
+        playbackRootEntity.scale = SIMD3<Float>(repeating: playbackScale)
+        playbackRootEntity.position = playbackPosition
+        
+        // Apply rotation
+        let rotation = simd_quatf(angle: playbackEulerAngles.y * .pi / 180, axis: [0, 1, 0]) * // Yaw
+                       simd_quatf(angle: playbackEulerAngles.x * .pi / 180, axis: [1, 0, 0])   // Pitch
+        playbackRootEntity.orientation = rotation
+    }
     
     // MARK: - Hand Visualization Setup
     
@@ -248,8 +301,11 @@ struct HappyBeamSpace: View {
         
         content.add(leftVis.rootEntity)
         content.add(rightVis.rootEntity)
-        content.add(playbackLeftVis.rootEntity)
-        content.add(playbackRightVis.rootEntity)
+        
+        content.add(playbackRootEntity)
+        playbackRootEntity.addChild(playbackLeftVis.rootEntity)
+        playbackRootEntity.addChild(playbackRightVis.rootEntity)
+        
         content.add(practiceGhost.rootEntity)
         
         // Initially hide all visualizations
@@ -304,26 +360,32 @@ struct HappyBeamSpace: View {
             }
             
         case .playback:
-            // Playback mode: show playback hands only (not user's hands)
-            leftHandVisualization?.clear()
-            rightHandVisualization?.clear()
+            // Playback mode: show BOTH playback hands AND user's hands for comparison
+            
+            // 1. Show user's hands (like in recording mode)
+            leftHandVisualization?.update(with: leftJoints)
+            rightHandVisualization?.update(with: rightJoints)
+            
             practiceGhostVisualization?.clear()
             
-            // Update playback visualization only when actively playing
-            if gameModel.isActivelyPlayingBack, let frame = captureManager.currentPlaybackFrame {
+            // 2. Show playback hands
+            // Update playback visualization only when actively playing or paused with data
+            if let frame = captureManager.currentPlaybackFrame {
                 playbackLeftHandVisualization?.update(with: frame.leftJoints)
                 playbackRightHandVisualization?.update(with: frame.rightJoints)
-                // Update elapsed time in game model
-                gameModel.playbackElapsedTime = captureManager.playbackElapsedTime
-            } else if !gameModel.isActivelyPlayingBack {
-                // When paused or stopped, keep showing the current frame if available
-                if let frame = captureManager.currentPlaybackFrame {
-                    playbackLeftHandVisualization?.update(with: frame.leftJoints)
-                    playbackRightHandVisualization?.update(with: frame.rightJoints)
-                } else {
-                    playbackLeftHandVisualization?.clear()
-                    playbackRightHandVisualization?.clear()
+                
+                // Ensure visibility
+                playbackLeftHandVisualization?.rootEntity.isEnabled = true
+                playbackRightHandVisualization?.rootEntity.isEnabled = true
+                
+                // Sync time display
+                if gameModel.isActivelyPlayingBack {
+                    gameModel.playbackElapsedTime = captureManager.playbackElapsedTime
                 }
+            } else {
+                // No frame data yet
+                playbackLeftHandVisualization?.clear()
+                playbackRightHandVisualization?.clear()
             }
 
         case .practice:
@@ -481,10 +543,42 @@ struct HappyBeamSpace: View {
         } else {
             let recording = gameModel.playbackRecording
             if let recording {
+                // Reset rotation and scale
+                playbackScale = 1.0
+                basePlaybackScale = 1.0
+                playbackEulerAngles = .zero
+                basePlaybackEulerAngles = .zero
+                // Reset position to zero (original recording position)
+                playbackPosition = .zero
+                basePlaybackPosition = .zero
+                
+                updatePlaybackTransform()
+                
                 captureManager.startOrResumePlayback(with: recording)
                 gameModel.isActivelyPlayingBack = true
             }
         }
+    }
+    
+    private func calculateCentroid(of recording: HandPoseRecording) -> SIMD3<Float> {
+        guard let firstFrame = recording.frames.first else { return .zero }
+        var points: [SIMD3<Float>] = []
+        
+        // Helper to extract position from joint
+        func getPos(_ joint: HandJointPose) -> SIMD3<Float> {
+            SIMD3<Float>(joint.position[0], joint.position[1], joint.position[2])
+        }
+        
+        // Use wrists as reference points
+        if let leftWrist = firstFrame.leftJoints.first(where: { $0.name == "wrist" }) {
+            points.append(getPos(leftWrist))
+        }
+        if let rightWrist = firstFrame.rightJoints.first(where: { $0.name == "wrist" }) {
+            points.append(getPos(rightWrist))
+        }
+        
+        if points.isEmpty { return .zero }
+        return points.reduce(.zero, +) / Float(points.count)
     }
     
     private func pausePlayback() {

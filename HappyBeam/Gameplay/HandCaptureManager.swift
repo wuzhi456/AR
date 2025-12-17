@@ -191,12 +191,16 @@ final class HandCaptureManager: ObservableObject {
                 }
             }
             
-            await MainActor.run {
-                self.isPlayingBack = false
-                // Don't clear the frame so it stays visible
-                // Reset for next playback
-                self.playbackStartIndex = 0
-                self.playbackStartOffset = 0
+            // Only reset if NOT cancelled (natural finish)
+            if !Task.isCancelled {
+                await MainActor.run {
+                    self.isPlayingBack = false
+                    // Keep the last frame visible and time at end
+                    // Do NOT reset to 0 here, so UI knows it finished
+                    // self.playbackStartIndex = 0
+                    // self.playbackStartOffset = 0
+                    // self.playbackElapsedTime = 0
+                }
             }
         }
     }
@@ -265,11 +269,16 @@ final class HandCaptureManager: ObservableObject {
                 }
             }
             
-            await MainActor.run {
-                self.isPlayingBack = false
-                // Reset for next playback
-                self.playbackStartIndex = 0
-                self.playbackStartOffset = 0
+            // Only reset if NOT cancelled (natural finish)
+            if !Task.isCancelled {
+                await MainActor.run {
+                    self.isPlayingBack = false
+                    // Keep the last frame visible and time at end
+                    // Do NOT reset to 0 here, so UI knows it finished
+                    // self.playbackStartIndex = 0
+                    // self.playbackStartOffset = 0
+                    // self.playbackElapsedTime = 0
+                }
             }
         }
     }

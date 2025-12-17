@@ -270,6 +270,41 @@ struct SoloPlay: View {
         return 0
     }
 
+    private var isPlaybackFinished: Bool {
+        guard gameModel.playbackTotalDuration > 0 else { return false }
+        // Allow a small epsilon for floating point comparison
+        return gameModel.playbackElapsedTime >= gameModel.playbackTotalDuration - 0.1
+    }
+    
+    private var playbackButtonIcon: String {
+        if gameModel.isActivelyPlayingBack {
+            return "pause.circle.fill"
+        } else if isPlaybackFinished {
+            return "arrow.counterclockwise.circle.fill"
+        } else {
+            return "play.circle"
+        }
+    }
+    
+    private var playbackButtonLabel: String {
+        if gameModel.isActivelyPlayingBack {
+            return "Pause Playback"
+        } else if isPlaybackFinished {
+            return "Replay"
+        } else {
+            return "Start Playback"
+        }
+    }
+    
+    private var playbackStatusText: String {
+        if gameModel.isActivelyPlayingBack {
+            return "playing"
+        } else if isPlaybackFinished {
+            return "ready"
+        } else {
+            return "ready"
+        }
+    }
     
     // MARK: - Playback Mode UI
     
@@ -305,7 +340,7 @@ struct SoloPlay: View {
                 .padding(.trailing, 40)
             }
             
-            Text(gameModel.isActivelyPlayingBack ? "playing" : "ready")
+            Text(playbackStatusText)
                 .font(.system(size: 24))
                 .bold()
                 .accessibilityHidden(true)
@@ -315,20 +350,21 @@ struct SoloPlay: View {
             HStack(spacing: 8) {
                 Spacer()
                 
-                // Play/Pause button
+                // Play/Pause/Replay button
                 Button {
                     handlePlaybackToggle()
                 } label: {
                     Label(
-                        gameModel.isActivelyPlayingBack ? "Pause Playback" : "Start Playback",
-                        systemImage: gameModel.isActivelyPlayingBack ? "pause.circle.fill" : "play.circle"
+                        playbackButtonLabel,
+                        systemImage: playbackButtonIcon
                     )
                     .labelStyle(.iconOnly)
                     .foregroundColor(gameModel.isActivelyPlayingBack ? .green : .primary)
                 }
                 
                 // Stop button (reset playback to beginning)
-                if gameModel.isActivelyPlayingBack || gameModel.playbackElapsedTime > 0 {
+                // Only show stop button if playing or paused (not finished)
+                if (gameModel.isActivelyPlayingBack || gameModel.playbackElapsedTime > 0) && !isPlaybackFinished {
                     Button {
                         NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
                     } label: {
@@ -568,12 +604,10 @@ struct SoloPlay: View {
         gameModel.isActivelyPlayingBack = false
     }
     
-    private func handlePlaybackToggle() {
+    private func handlePracticeToggle() {
         if gameModel.isActivelyPlayingBack {
-            // Pause playback
             NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
         } else {
-            // Start/resume playback
             NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
         }
     }
@@ -588,8 +622,15 @@ struct SoloPlay: View {
         gameModel.reset()
     }
     
-    private func handlePracticeToggle() {
-        if gameModel.isActivelyPlayingBack {
+    private func handlePlaybackToggle() {
+        if isPlaybackFinished {
+            // Replay logic: Reset and start
+            NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
+            // Small delay to allow stop to process
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
+            }
+        } else if gameModel.isActivelyPlayingBack {
             NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
         } else {
             NotificationCenter.default.post(name: .startPlaybackRequested, object: nil)
