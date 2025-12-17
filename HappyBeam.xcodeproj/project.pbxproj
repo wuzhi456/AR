@@ -11,9 +11,19 @@
 		264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F12EEAA816002E2933 /* HandCaptureManager.swift */; };
 		264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F22EEAA816002E2933 /* HandPoseData.swift */; };
 		264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264737F32EEAA816002E2933 /* HandVisualization.swift */; };
-
 		2667A1382EEC06380081B20F /* CalligraphyComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */; };
 		2667A13A2EEC06570081B20F /* CalligraphyComparisonViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2667A1392EEC06570081B20F /* CalligraphyComparisonViewModel.swift */; };
+		267BE91B2EF2646300F49F45 /* HVFingerShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9142EF2646300F49F45 /* HVFingerShape.swift */; };
+		267BE91C2EF2646300F49F45 /* HVHandInfo+CosineSimilary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9162EF2646300F49F45 /* HVHandInfo+CosineSimilary.swift */; };
+		267BE91D2EF2646300F49F45 /* Codable+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE90D2EF2646300F49F45 /* Codable+Extensions.swift */; };
+		267BE91E2EF2646300F49F45 /* HandSkeleton+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE90F2EF2646300F49F45 /* HandSkeleton+Extensions.swift */; };
+		267BE91F2EF2646300F49F45 /* HandVectorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9132EF2646300F49F45 /* HandVectorManager.swift */; };
+		267BE9202EF2646300F49F45 /* HVJointInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9182EF2646300F49F45 /* HVJointInfo.swift */; };
+		267BE9212EF2646300F49F45 /* HVHandJsonModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9172EF2646300F49F45 /* HVHandJsonModel.swift */; };
+		267BE9222EF2646300F49F45 /* HVJointOfFinger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9192EF2646300F49F45 /* HVJointOfFinger.swift */; };
+		267BE9232EF2646300F49F45 /* HandAnchor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE90E2EF2646300F49F45 /* HandAnchor+Extensions.swift */; };
+		267BE9242EF2646300F49F45 /* HVHandInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267BE9152EF2646300F49F45 /* HVHandInfo.swift */; };
+		267BE9252EF2646300F49F45 /* BuiltinHand.json in Resources */ = {isa = PBXBuildFile; fileRef = 267BE9112EF2646300F49F45 /* BuiltinHand.json */; };
 		321A0C13291C02B80042A987 /* HappyBeamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321A0C12291C02B80042A987 /* HappyBeamApp.swift */; };
 		321A0C19291C02B90042A987 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C18291C02B90042A987 /* Assets.xcassets */; };
 		321A0C1C291C02B90042A987 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 321A0C1B291C02B90042A987 /* Preview Assets.xcassets */; };
@@ -44,9 +54,9 @@
 		32BD3B6A299C2729005798DF /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32BD3B69299C2729005798DF /* Extensions.swift */; };
 		32C96CBF2A2FED900030AA37 /* Packages in Resources */ = {isa = PBXBuildFile; fileRef = 32C96CBE2A2FED900030AA37 /* Packages */; };
 		32D0FA0F291EE85800FF07D8 /* HappyBeamSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32D0FA0E291EE85800FF07D8 /* HappyBeamSpace.swift */; };
+		33A1B2C33A1B2C33A1B2C33 /* GestureModuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */; };
 		B0B8C3EA2BDC363900704A2C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0B8C3E92BDC363900704A2C /* Localizable.xcstrings */; };
 		B0CF536A2BF5E560000E4337 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B0CF53692BF5E560000E4337 /* InfoPlist.xcstrings */; };
-        33A1B2C33A1B2C33A1B2C33 /* GestureModuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,9 +64,19 @@
 		264737F12EEAA816002E2933 /* HandCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCaptureManager.swift; sourceTree = "<group>"; };
 		264737F22EEAA816002E2933 /* HandPoseData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandPoseData.swift; sourceTree = "<group>"; };
 		264737F32EEAA816002E2933 /* HandVisualization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandVisualization.swift; sourceTree = "<group>"; };
-
 		2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalligraphyComparisonView.swift; sourceTree = "<group>"; };
 		2667A1392EEC06570081B20F /* CalligraphyComparisonViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalligraphyComparisonViewModel.swift; sourceTree = "<group>"; };
+		267BE90D2EF2646300F49F45 /* Codable+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Codable+Extensions.swift"; sourceTree = "<group>"; };
+		267BE90E2EF2646300F49F45 /* HandAnchor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HandAnchor+Extensions.swift"; sourceTree = "<group>"; };
+		267BE90F2EF2646300F49F45 /* HandSkeleton+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HandSkeleton+Extensions.swift"; sourceTree = "<group>"; };
+		267BE9112EF2646300F49F45 /* BuiltinHand.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BuiltinHand.json; sourceTree = "<group>"; };
+		267BE9132EF2646300F49F45 /* HandVectorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandVectorManager.swift; sourceTree = "<group>"; };
+		267BE9142EF2646300F49F45 /* HVFingerShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HVFingerShape.swift; sourceTree = "<group>"; };
+		267BE9152EF2646300F49F45 /* HVHandInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HVHandInfo.swift; sourceTree = "<group>"; };
+		267BE9162EF2646300F49F45 /* HVHandInfo+CosineSimilary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HVHandInfo+CosineSimilary.swift"; sourceTree = "<group>"; };
+		267BE9172EF2646300F49F45 /* HVHandJsonModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HVHandJsonModel.swift; sourceTree = "<group>"; };
+		267BE9182EF2646300F49F45 /* HVJointInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HVJointInfo.swift; sourceTree = "<group>"; };
+		267BE9192EF2646300F49F45 /* HVJointOfFinger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HVJointOfFinger.swift; sourceTree = "<group>"; };
 		321A0C0B291C02B80042A987 /* HappyBeam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBeam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		321A0C12291C02B80042A987 /* HappyBeamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HappyBeamApp.swift; sourceTree = "<group>"; };
 		321A0C18291C02B90042A987 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -91,11 +111,11 @@
 		32BD3B69299C2729005798DF /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		32C96CBE2A2FED900030AA37 /* Packages */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Packages; sourceTree = "<group>"; };
 		32D0FA0E291EE85800FF07D8 /* HappyBeamSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HappyBeamSpace.swift; sourceTree = "<group>"; };
+		33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureModuleView.swift; sourceTree = "<group>"; };
 		69D019E13699007BC04C1F1F /* SampleCode.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		9823BBED79461E85755AF17F /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		B0B8C3E92BDC363900704A2C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		B0CF53692BF5E560000E4337 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
-		33A1B2C23A1B2C33A1B2C23 /* GestureModuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureModuleView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +136,40 @@
 				321C682E2A2FEF0A00721BA7 /* HappyBeamAssets */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		267BE9102EF2646300F49F45 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				267BE90D2EF2646300F49F45 /* Codable+Extensions.swift */,
+				267BE90E2EF2646300F49F45 /* HandAnchor+Extensions.swift */,
+				267BE90F2EF2646300F49F45 /* HandSkeleton+Extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		267BE9122EF2646300F49F45 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				267BE9112EF2646300F49F45 /* BuiltinHand.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		267BE91A2EF2646300F49F45 /* HandVector */ = {
+			isa = PBXGroup;
+			children = (
+				267BE9102EF2646300F49F45 /* Extensions */,
+				267BE9122EF2646300F49F45 /* Resources */,
+				267BE9132EF2646300F49F45 /* HandVectorManager.swift */,
+				267BE9142EF2646300F49F45 /* HVFingerShape.swift */,
+				267BE9152EF2646300F49F45 /* HVHandInfo.swift */,
+				267BE9162EF2646300F49F45 /* HVHandInfo+CosineSimilary.swift */,
+				267BE9172EF2646300F49F45 /* HVHandJsonModel.swift */,
+				267BE9182EF2646300F49F45 /* HVJointInfo.swift */,
+				267BE9192EF2646300F49F45 /* HVJointOfFinger.swift */,
+			);
+			path = HandVector;
 			sourceTree = "<group>";
 		};
 		321A0C02291C02B70042A987 = {
@@ -142,6 +196,7 @@
 		321A0C0D291C02B80042A987 /* HappyBeam */ = {
 			isa = PBXGroup;
 			children = (
+				267BE91A2EF2646300F49F45 /* HandVector */,
 				322D5A842A057FBB003A32F3 /* Sounds */,
 				32BD3B6B299C2790005798DF /* USDZs */,
 				324F3043298AC8B900200F22 /* Views */,
@@ -186,7 +241,6 @@
 		324F3043298AC8B900200F22 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-
 				32372A622991920F00F10755 /* HappyBeam.swift */,
 				324F3044298ACB0B00200F22 /* Start.swift */,
 				2667A1372EEC06380081B20F /* CalligraphyComparisonView.swift */,
@@ -320,6 +374,7 @@
 				1F8249602A16EEDA00C2F5D3 /* Cloud.usdz in Resources */,
 				3299370D2A12A8B60073F0B0 /* cloudHit1.m4a in Resources */,
 				329937102A12A8B60073F0B0 /* happyBeamGameplay.m4a in Resources */,
+				267BE9252EF2646300F49F45 /* BuiltinHand.json in Resources */,
 				321A0C19291C02B90042A987 /* Assets.xcassets in Resources */,
 				329937122A12A8B60073F0B0 /* cloudHit4.m4a in Resources */,
 				32745A162A02F4C1000035F8 /* UpdatedGrumpyScene2.usdz in Resources */,
@@ -345,8 +400,17 @@
 				264737F42EEAA816002E2933 /* HandCaptureManager.swift in Sources */,
 				264737F52EEAA816002E2933 /* HandPoseData.swift in Sources */,
 				264737F62EEAA816002E2933 /* HandVisualization.swift in Sources */,
+				267BE91B2EF2646300F49F45 /* HVFingerShape.swift in Sources */,
+				267BE91C2EF2646300F49F45 /* HVHandInfo+CosineSimilary.swift in Sources */,
+				267BE91D2EF2646300F49F45 /* Codable+Extensions.swift in Sources */,
+				267BE91E2EF2646300F49F45 /* HandSkeleton+Extensions.swift in Sources */,
+				267BE91F2EF2646300F49F45 /* HandVectorManager.swift in Sources */,
+				267BE9202EF2646300F49F45 /* HVJointInfo.swift in Sources */,
+				267BE9212EF2646300F49F45 /* HVHandJsonModel.swift in Sources */,
+				267BE9222EF2646300F49F45 /* HVJointOfFinger.swift in Sources */,
+				267BE9232EF2646300F49F45 /* HandAnchor+Extensions.swift in Sources */,
+				267BE9242EF2646300F49F45 /* HVHandInfo.swift in Sources */,
 				324F304D298AF28C00200F22 /* MultiScore.swift in Sources */,
-
 				324F304B298AED7300200F22 /* MultiPlay.swift in Sources */,
 				324F3047298AE68600200F22 /* SoloPlay.swift in Sources */,
 				324EA74B297B2286005A6B3B /* Multiplayer.swift in Sources */,
@@ -489,9 +553,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 69D019E13699007BC04C1F1F /* SampleCode.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = HappyBeam/HappyBeam.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -526,9 +590,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 69D019E13699007BC04C1F1F /* SampleCode.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = HappyBeam/HappyBeam.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

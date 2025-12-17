@@ -67,7 +67,8 @@ struct HappyBeamSpace: View {
                 discardRecording: discardRecording,
                 startPlayback: startPlayback,
                 pausePlayback: pausePlayback,
-                stopPlayback: stopPlayback
+                stopPlayback: stopPlayback,
+                setPlaybackSpeed: setPlaybackSpeed
             ))
             .onChange(of: gameModel.controllerLastInput) {
                 gameControllerLoop()
@@ -87,6 +88,9 @@ struct HappyBeamSpace: View {
             content.add(spaceOrigin)
             content.add(cameraRelativeAnchor)
             spaceOrigin.addChild(beamIntermediate)
+            
+            // Add HandVectorManager root entity
+            spaceOrigin.addChild(HandVectorManager.shared.rootEntity)
             
             // Setup hand visualizations
             setupHandVisualizations(content: content)
@@ -604,6 +608,10 @@ struct HappyBeamSpace: View {
         }
     }
     
+    private func setPlaybackSpeed(_ speed: Double) {
+        captureManager.setPlaybackSpeed(speed)
+    }
+    
     private func handleGameEnd() {
         switch gameModel.soloGameMode {
         case .normal:
@@ -845,6 +853,15 @@ struct TasksModifier: ViewModifier {
                 await gestureModel.publishHandTrackingUpdates()
             }
             .task {
+                // Start HandVectorManager updates
+                while !Task.isCancelled {
+                    let left = gestureModel.latestHandTracking.left
+                    let right = gestureModel.latestHandTracking.right
+                    HandVectorManager.shared.update(left: left, right: right)
+                    try? await Task.sleep(nanoseconds: 33_000_000) // ~30fps
+                }
+            }
+            .task {
                 await gestureModel.monitorSessionEvents()
             }
             .task {
@@ -862,6 +879,7 @@ struct NotificationModifier: ViewModifier {
     var startPlayback: () -> Void
     var pausePlayback: () -> Void
     var stopPlayback: () -> Void
+    var setPlaybackSpeed: (Double) -> Void
     
     func body(content: Content) -> some View {
         content
@@ -885,6 +903,11 @@ struct NotificationModifier: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .stopPlaybackRequested)) { _ in
                 stopPlayback()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .setPlaybackSpeedRequested)) { notification in
+                if let speed = notification.object as? Double {
+                    setPlaybackSpeed(speed)
+                }
             }
     }
 }

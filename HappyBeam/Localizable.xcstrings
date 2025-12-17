@@ -939,7 +939,19 @@
     "%lld%%" : {
 
     },
-    "• 将双手靠拢拇指与食指接触可触发 Heart 手势。\n• 单侧拇指与食指接近可触发 Pinch (捏合) 检测。" : {
+    "• 将双手靠拢拇指与食指接触可触发 Heart 手势。\n• 单侧拇指与食指接近可触发 Pinch (捏合) 检测。\n• 尝试做出 '👆' 手势来测试向量识别。" : {
+
+    },
+    "0.5x" : {
+
+    },
+    "0.75x" : {
+
+    },
+    "1.0x" : {
+
+    },
+    "1.5x" : {
 
     },
     "Altus" : {
@@ -1048,6 +1060,9 @@
           }
         }
       }
+    },
+    "Best Match: %@" : {
+
     },
     "Calligraphy Comparison" : {
 
@@ -1292,6 +1307,9 @@
     "Elapsed Time" : {
 
     },
+    "Enable Detection" : {
+
+    },
     "Found %lld recordings" : {
 
     },
@@ -1400,6 +1418,12 @@
           }
         }
       }
+    },
+    "Hand Vector" : {
+
+    },
+    "Hand Vector Debug" : {
+
     },
     "Happy Beam" : {
       "comment" : "The name of the game.",
@@ -1585,6 +1609,12 @@
         }
       }
     },
+    "MATCHED!" : {
+
+    },
+    "Most Likely Gesture: %@" : {
+
+    },
     "Nimbus" : {
       "localizations" : {
         "de" : {
@@ -1626,6 +1656,9 @@
 
     },
     "Not detected" : {
+
+    },
+    "Not Tracked" : {
 
     },
     "Pause" : {
@@ -1990,6 +2023,9 @@
         }
       }
     },
+    "Score: %@" : {
+
+    },
     "Select Coach File" : {
 
     },
@@ -1999,7 +2035,16 @@
     "Select User File" : {
 
     },
+    "Show Skeleton" : {
+
+    },
     "Similarity Score" : {
+
+    },
+    "Similarity: %@" : {
+
+    },
+    "Speed" : {
 
     },
     "Start Practice" : {
@@ -2097,6 +2142,9 @@
 
     },
     "User Recording" : {
+
+    },
+    "Vector Gesture Analysis" : {
 
     },
     "Waiting for all players to choose." : {

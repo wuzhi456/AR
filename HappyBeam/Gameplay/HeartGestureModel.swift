@@ -46,6 +46,9 @@ class HeartGestureModel: ObservableObject, @unchecked Sendable {
                 } else if anchor.chirality == .right { // Update right hand info.
                     latestHandTracking.right = anchor
                 }
+                
+                // Update HandVectorManager
+                HandVectorManager.shared.update(left: latestHandTracking.left, right: latestHandTracking.right)
             default:
                 break
             }

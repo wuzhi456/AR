@@ -13,6 +13,12 @@ struct GestureModuleView: View {
     @State private var rightPinch: Bool = false
     @State private var leftTracked: Bool = false
     @State private var rightTracked: Bool = false
+    
+    @ObservedObject private var handVectorManager = HandVectorManager.shared
+    @State private var builtinGestures: [String: HVHandJsonModel] = [:]
+    @State private var similarityScore: Float = 0.0
+    @State private var recognizedGesture: String = "None"
+    @State private var isDetectionEnabled: Bool = true
 
     var body: some View {
         VStack(spacing: 12) {
@@ -41,6 +47,62 @@ struct GestureModuleView: View {
                     .tabItem { Text("识别") }
 
                 VStack {
+                    Text("Hand Vector Debug")
+                        .font(.headline)
+                    
+                    Toggle("Enable Detection", isOn: $isDetectionEnabled)
+                        .padding(.horizontal)
+                    
+                    Toggle("Show Skeleton", isOn: $handVectorManager.isSkeletonVisible)
+                        .padding(.horizontal)
+                    
+                    HStack {
+                        VStack {
+                            Text("Left Hand")
+                                .font(.caption)
+                            if let left = handVectorManager.leftHand {
+                                Text("Tracked")
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("Not Tracked")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        Spacer()
+                        VStack {
+                            Text("Right Hand")
+                                .font(.caption)
+                            if let right = handVectorManager.rightHand {
+                                Text("Tracked")
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("Not Tracked")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                    .padding()
+                    
+                    Divider()
+                    
+                    Text("Most Likely Gesture: \(recognizedGesture)")
+                        .font(.title2)
+                        .padding(.top)
+                    
+                    Text("Similarity: \(String(format: "%.2f", similarityScore))")
+                        .font(.title3)
+                        .foregroundColor(similarityScore > 0.8 ? .green : .primary)
+                    
+                    if similarityScore > 0.9 {
+                        Text("MATCHED!")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                            .bold()
+                    }
+                }
+                .tabItem { Text("Hand Vector") }
+                
+                VStack {
                     Text("小游戏占位")
                         .foregroundStyle(.secondary)
                     Text("(待实现)")
@@ -51,6 +113,15 @@ struct GestureModuleView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
         .onAppear {
+            // Load builtin gestures
+            if let loaded = HVHandJsonModel.loadHandJsonModelDict(fileName: "BuiltinHand") {
+                builtinGestures = loaded
+            } else {
+                // Fallback if file not found in bundle (e.g. not added to target)
+                // Try to load from local path if possible or just log error
+                print("Failed to load BuiltinHand.json")
+            }
+            
             // Start heart gesture model tasks in background
             Task.detached { @MainActor in
                 await gestureModel.start()
@@ -62,10 +133,51 @@ struct GestureModuleView: View {
             Task {
                 while !Task.isCancelled {
                     await updateDetections()
+                    
+                    // Ensure HandVectorManager is updated with latest data
+                    let left = gestureModel.latestHandTracking.left
+                    let right = gestureModel.latestHandTracking.right
+                    await MainActor.run {
+                        HandVectorManager.shared.update(left: left, right: right)
+                    }
+                    
+                    updateHandVectorSimilarity()
                     try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                 }
             }
         }
+    }
+    
+    private func updateHandVectorSimilarity() {
+        guard isDetectionEnabled else { return }
+        
+        var bestMatchName = "None"
+        var bestMatchScore: Float = 0.0
+        
+        // Iterate through all loaded gestures
+        for (name, jsonModel) in builtinGestures {
+            guard let targetGesture = jsonModel.convertToHVHandInfo() else { continue }
+            
+            var currentMax: Float = 0.0
+            
+            if let leftHand = handVectorManager.leftHand {
+                let score = leftHand.similarity(to: targetGesture)
+                if score > currentMax { currentMax = score }
+            }
+            
+            if let rightHand = handVectorManager.rightHand {
+                let score = rightHand.similarity(to: targetGesture)
+                if score > currentMax { currentMax = score }
+            }
+            
+            if currentMax > bestMatchScore {
+                bestMatchScore = currentMax
+                bestMatchName = name
+            }
+        }
+        
+        self.similarityScore = bestMatchScore
+        self.recognizedGesture = bestMatchName
     }
 
     private var gestureRecognitionView: some View {
@@ -94,6 +206,33 @@ struct GestureModuleView: View {
             }
             .padding()
 
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Vector Gesture Analysis")
+                    .font(.headline)
+                
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Best Match: \(recognizedGesture)")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(similarityScore > 0.8 ? .green : .primary)
+                        Text("Score: \(String(format: "%.2f", similarityScore))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    if similarityScore > 0.9 {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.largeTitle)
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            Divider()
+
             HStack {
                 VStack(alignment: .leading) {
                     Text("Left Hand")
@@ -116,7 +255,7 @@ struct GestureModuleView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("说明")
                     .font(.headline)
-                Text("• 将双手靠拢拇指与食指接触可触发 Heart 手势。\n• 单侧拇指与食指接近可触发 Pinch (捏合) 检测。")
+                Text("• 将双手靠拢拇指与食指接触可触发 Heart 手势。\n• 单侧拇指与食指接近可触发 Pinch (捏合) 检测。\n• 尝试做出 '👆' 手势来测试向量识别。")
                     .foregroundStyle(.secondary)
             }
             .padding()

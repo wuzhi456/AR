@@ -306,6 +306,8 @@ struct SoloPlay: View {
         }
     }
     
+    @State private var playbackSpeed: Double = 1.0
+    
     // MARK: - Playback Mode UI
     
     private var playbackModeUI: some View {
@@ -345,6 +347,20 @@ struct SoloPlay: View {
                 .bold()
                 .accessibilityHidden(true)
                 .offset(y: -5)
+            
+            // Speed Control
+            Picker("Speed", selection: $playbackSpeed) {
+                Text("0.5x").tag(0.5)
+                Text("0.75x").tag(0.75)
+                Text("1.0x").tag(1.0)
+                Text("1.5x").tag(1.5)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 200)
+            .padding(.bottom, 8)
+            .onChange(of: playbackSpeed) { _, newSpeed in
+                NotificationCenter.default.post(name: .setPlaybackSpeedRequested, object: newSpeed)
+            }
             
             // Playback control buttons
             HStack(spacing: 8) {
@@ -590,6 +606,9 @@ struct SoloPlay: View {
         if gameModel.isActivelyPlayingBack {
             NotificationCenter.default.post(name: .pausePlaybackRequested, object: nil)
         }
+        
+        // Clear playback state when exiting
+        NotificationCenter.default.post(name: .stopPlaybackRequested, object: nil)
 
         // Request that Start show the recordings list once immersive space is dismissed.
         NotificationCenter.default.post(name: .showRecordingsListRequested, object: nil)
@@ -649,6 +668,7 @@ extension Notification.Name {
     static let pausePlaybackRequested = Notification.Name("pausePlaybackRequested")
     static let stopPlaybackRequested = Notification.Name("stopPlaybackRequested")
     static let showRecordingsListRequested = Notification.Name("showRecordingsListRequested")
+    static let setPlaybackSpeedRequested = Notification.Name("setPlaybackSpeedRequested")
 }
 
 #Preview {

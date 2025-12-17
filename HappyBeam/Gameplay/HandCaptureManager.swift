@@ -35,6 +35,7 @@ final class HandCaptureManager: ObservableObject {
     private var playbackRecording: HandPoseRecording?
     private var playbackStartIndex: Int = 0
     private var playbackStartOffset: TimeInterval = 0
+    private var playbackSpeed: Double = 1.0
     
     private static let filenameFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -170,11 +171,11 @@ final class HandCaptureManager: ObservableObject {
             for (index, frame) in frames.enumerated() {
                 guard !Task.isCancelled else { break }
                 
-                let elapsed = CACurrentMediaTime() - startWallClock
+                let elapsed = (CACurrentMediaTime() - startWallClock) * self.playbackSpeed
                 let target = frame.timestamp - baseTime
                 
                 if target > elapsed {
-                    let delay = target - elapsed
+                    let delay = (target - elapsed) / self.playbackSpeed
                     do {
                         try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                     } catch {
@@ -247,11 +248,11 @@ final class HandCaptureManager: ObservableObject {
             for (index, frame) in frames.enumerated() {
                 guard !Task.isCancelled else { break }
                 
-                let elapsed = CACurrentMediaTime() - startWallClock
+                let elapsed = (CACurrentMediaTime() - startWallClock) * self.playbackSpeed
                 let target = frame.timestamp - baseOffset
                 
                 if target > elapsed {
-                    let delay = target - elapsed
+                    let delay = (target - elapsed) / self.playbackSpeed
                     do {
                         try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                     } catch {
@@ -342,5 +343,16 @@ final class HandCaptureManager: ObservableObject {
         playbackStartIndex = 0
         playbackStartOffset = 0
         playbackRecording = nil
+    }
+    
+    /// Sets the playback speed multiplier (e.g. 0.5, 1.0, 1.5).
+    func setPlaybackSpeed(_ speed: Double) {
+        playbackSpeed = speed
+        // If currently playing, we need to restart the task to apply the new speed
+        // or adjust the timing logic. For simplicity, if playing, we can pause and resume.
+        if isPlayingBack {
+            pausePlayback()
+            resumePlayback()
+        }
     }
 }
