@@ -359,9 +359,9 @@ AR/
 ### 5.1 启动界面 (Start View)
 
 提供三个主要入口：
-- **Recording Mode**：进入手部姿态录制模式
-- **Playback Mode**：选择已保存的录制文件进行回放
-- **Calligraphy Comparison**：进入书法比较界面
+- **录制模式 (Recording Mode)**：进入手部姿态录制模式
+- **回放模式 (Playback Mode)**：选择已保存的录制文件进行回放
+- **书法比较 (Calligraphy Comparison)**：进入书法比较界面
 
 ### 5.2 录制模式控制界面
 
@@ -425,7 +425,9 @@ func computeTransformOfUserPerformedHeartGesture() -> simd_float4x4? {
     let thumbsDistance = distance(leftThumbTip, rightThumbTip)
     
     // 距离阈值判定（< 4cm 视为接触）
-    let isHeartShapeGesture = indexFingersDistance < 0.04 && thumbsDistance < 0.04
+    // 注：0.04 为 4 厘米的阈值，单位为米
+    let touchThreshold: Float = 0.04
+    let isHeartShapeGesture = indexFingersDistance < touchThreshold && thumbsDistance < touchThreshold
     
     if isHeartShapeGesture {
         // 返回手势中心点的变换矩阵
