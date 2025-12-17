@@ -35,7 +35,8 @@ struct HappyBeamSpace: View {
     @State private var playbackRightHandVisualization: HandVisualization?
     @State private var practiceGhostVisualization: HandVisualization?
     // Keep track of ghost playback frame; mutate on main actor to avoid missed SwiftUI updates.
-    @State private var practiceGhostFrameIndex: Int = 0
+    @State private var practiceGhostFrameIndex: Double = 0.0
+    @State private var practicePlaybackSpeed: Double = 1.0
     
     // Playback transformation state
     @State private var playbackRootEntity = Entity()
@@ -410,8 +411,9 @@ struct HappyBeamSpace: View {
             return
         }
         // Work on a local index, then commit to @State on the main actor to ensure the assignment sticks.
-        var nextIndex = min(max(practiceGhostFrameIndex, 0), recording.frames.count - 1)
-        let frame = recording.frames[nextIndex]
+        var nextIndex = min(max(practiceGhostFrameIndex, 0), Double(recording.frames.count - 1))
+        let frameIndex = Int(nextIndex)
+        let frame = recording.frames[frameIndex]
         let joints = gameModel.practiceHand == .left ? frame.leftJoints : frame.rightJoints
         ghost.update(with: joints, interpolateMissing: true)
         ghost.rootEntity.isEnabled = true
@@ -433,8 +435,8 @@ struct HappyBeamSpace: View {
         if distance < threshold {
             // Close enough: turn green and advance a frame (bounded)
             ghost.setColors(jointColor: .green.withAlphaComponent(0.8), boneColor: .green.withAlphaComponent(0.6))
-            if nextIndex < recording.frames.count - 1 {
-                nextIndex += 1
+            if nextIndex < Double(recording.frames.count - 1) {
+                nextIndex += practicePlaybackSpeed
             }
         } else {
             // Too far: stay red and pause
@@ -503,7 +505,7 @@ struct HappyBeamSpace: View {
                 gameModel.playbackTotalDuration = 0
             }
             Task { @MainActor in
-                practiceGhostFrameIndex = 0
+                practiceGhostFrameIndex = 0.0
                 gameModel.playbackElapsedTime = 0
             }
         }
@@ -543,7 +545,7 @@ struct HappyBeamSpace: View {
         if gameModel.soloGameMode == .practice {
             // Manual, proximity-gated playback handled in updatePracticeGhost
             gameModel.isActivelyPlayingBack = true
-            practiceGhostFrameIndex = 0
+            practiceGhostFrameIndex = 0.0
         } else {
             let recording = gameModel.playbackRecording
             if let recording {
@@ -599,7 +601,7 @@ struct HappyBeamSpace: View {
             gameModel.isActivelyPlayingBack = false
             Task { @MainActor in
                 gameModel.playbackElapsedTime = 0
-                practiceGhostFrameIndex = 0
+                practiceGhostFrameIndex = 0.0
             }
         } else {
             captureManager.stopPlayback()
@@ -610,6 +612,7 @@ struct HappyBeamSpace: View {
     
     private func setPlaybackSpeed(_ speed: Double) {
         captureManager.setPlaybackSpeed(speed)
+        practicePlaybackSpeed = speed
     }
     
     private func handleGameEnd() {
@@ -630,7 +633,7 @@ struct HappyBeamSpace: View {
 
         case .practice:
             gameModel.isActivelyPlayingBack = false
-            practiceGhostFrameIndex = 0
+            practiceGhostFrameIndex = 0.0
         }
         
         // Clear all visualizations

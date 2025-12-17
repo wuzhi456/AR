@@ -452,6 +452,20 @@ struct SoloPlay: View {
                 .accessibilityHidden(true)
                 .offset(y: -4)
             
+            // Speed Control
+            Picker("Speed", selection: $playbackSpeed) {
+                Text("0.5x").tag(0.5)
+                Text("0.75x").tag(0.75)
+                Text("1.0x").tag(1.0)
+                Text("1.5x").tag(1.5)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 300)
+            .padding(.bottom, 8)
+            .onChange(of: playbackSpeed) { _, newSpeed in
+                NotificationCenter.default.post(name: .setPlaybackSpeedRequested, object: newSpeed)
+            }
+            
             HStack(spacing: 8) {
                 Spacer()
                 
