@@ -363,36 +363,8 @@ AR/
 - **回放模式 (Playback Mode)**：选择已保存的录制文件进行回放
 - **书法比较 (Calligraphy Comparison)**：进入书法比较界面
 
-### 5.2 录制模式控制界面
 
-```
-┌──────────────────────────────┐
-│  ○ Recording                 │
-│                              │
-│       00:05.3                │
-│      recording               │
-│                              │
-│  🔇  ⏺  💾  🗑              │
-│      Start/Stop  Save  Discard│
-└──────────────────────────────┘
-```
-
-### 5.3 回放模式控制界面
-
-```
-┌──────────────────────────────┐
-│  ▶ Playing                   │
-│                              │
-│       00:03.2                │
-│       / 00:10                │
-│      playing                 │
-│                              │
-│      ▶/⏸    ⏹               │
-│     Play/Pause  Stop         │
-└──────────────────────────────┘
-```
-
-### 5.4 书法比较界面
+### 5.2 书法比较界面
 
 - 教练录制文件选择
 - 学员录制文件选择
@@ -404,44 +376,10 @@ AR/
 
 ------
 
-## 6. 手势识别附加功能
 
-### 6.1 爱心手势检测
+## 6. 当前实现与未来扩展
 
-项目还实现了双手组合"爱心"手势的检测，用于游戏交互：
-
-```swift
-func computeTransformOfUserPerformedHeartGesture() -> simd_float4x4? {
-    // 获取双手关键关节
-    guard let leftThumbTip = leftHand.thumbTip,
-          let leftIndexTip = leftHand.indexFingerTip,
-          let rightThumbTip = rightHand.thumbTip,
-          let rightIndexTip = rightHand.indexFingerTip else {
-        return nil
-    }
-    
-    // 计算指尖距离
-    let indexFingersDistance = distance(leftIndexTip, rightIndexTip)
-    let thumbsDistance = distance(leftThumbTip, rightThumbTip)
-    
-    // 距离阈值判定（< 4cm 视为接触）
-    // 注：0.04 为 4 厘米的阈值，单位为米
-    let touchThreshold: Float = 0.04
-    let isHeartShapeGesture = indexFingersDistance < touchThreshold && thumbsDistance < touchThreshold
-    
-    if isHeartShapeGesture {
-        // 返回手势中心点的变换矩阵
-        return heartMidpointWorldTransform
-    }
-    return nil
-}
-```
-
-------
-
-## 7. 当前实现与未来扩展
-
-### 7.1 已实现功能
+### 6.1 已实现功能
 
 | 功能模块         | 状态   | 说明                                             |
 | ---------------- | ------ | ------------------------------------------------ |
@@ -454,7 +392,7 @@ func computeTransformOfUserPerformedHeartGesture() -> simd_float4x4? {
 | 录制裁剪         | ✅ 完成 | 时间范围选择器                                   |
 | 多种比较模式     | ✅ 完成 | 右右、左左、镜像比较                             |
 
-### 7.2 未来扩展方向
+### 6.2 未来扩展方向
 
 | 功能模块              | 状态     | 描述                                               |
 | --------------------- | -------- | -------------------------------------------------- |
@@ -469,7 +407,7 @@ func computeTransformOfUserPerformedHeartGesture() -> simd_float4x4? {
 
 ------
 
-## 8. 结论
+## 7. 结论
 
 本项目成功验证了 Apple Vision Pro 手部追踪技术在书法动作教学场景下的可行性。通过实现"记录-回放-比较"功能闭环，系统能够：
 
