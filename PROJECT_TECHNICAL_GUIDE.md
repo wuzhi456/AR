@@ -313,8 +313,10 @@ func saveRecording() async {
 
 **存储路径示例：**
 ```
-/var/mobile/Containers/Data/Application/<UUID>/Documents/HandPose_20250101_120000.json
+/var/mobile/Containers/Data/Application/<UUID>/Documents/HandPose_<yyyyMMdd_HHmmss>.json
 ```
+
+文件名格式由 `DateFormatter` 定义：`"yyyyMMdd_HHmmss"`，例如：`HandPose_20250101_120000.json`
 
 ### 3.2 JSON 数据格式
 
@@ -887,7 +889,9 @@ func stopPlayback() {
 
 ## 8. SwiftUI 关键语法应用
 
-### 8.1 @Observable 宏（iOS 17+）
+### 8.1 @Observable 宏（iOS 17+ / visionOS 1.0+）
+
+> **注意**：`@Observable` 宏是在 iOS 17 / visionOS 1.0 中引入的新特性。如果需要支持更早的 iOS 版本，需要使用传统的 `@ObservableObject` 协议和 `@Published` 属性包装器。
 
 ```swift
 // 位置: HappyBeam/GameModel.swift
